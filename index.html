@@ -1,0 +1,2026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIA Pasting Schedule</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script>if(typeof XLSXStyle!=='undefined') window.XLSX=XLSXStyle;</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+:root{
+  --dark:#0A1628;--navy:#132240;--purple:#7C3AED;--lpurp:#A78BFA;
+  --accent:#F97316;--green:#16A34A;--amber:#D97706;
+  --bg:#F2F0FA;--card:#FFFFFF;--border:#E2DFF0;--text:#1A1030;--muted:#6B5F80;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+.topbar{background:var(--dark);height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:100;border-bottom:2px solid var(--purple);}
+.brand{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#fff;letter-spacing:2px;}
+.brand span{color:var(--lpurp);}
+.topdate{font-family:'DM Mono',monospace;font-size:11px;color:#6A8099;background:rgba(255,255,255,.05);padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.08);}
+.stepper{display:flex;align-items:center;justify-content:center;padding:20px 0 0;background:var(--card);border-bottom:1px solid var(--border);}
+.stp{display:flex;flex-direction:column;align-items:center;gap:5px;padding:0 20px 16px;}
+.stp-num{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:2px solid var(--border);background:#fff;color:var(--muted);transition:all .3s;}
+.stp.active .stp-num{background:var(--purple);color:#fff;border-color:var(--lpurp);box-shadow:0 0 0 5px rgba(124,58,237,.12);}
+.stp.done .stp-num{background:var(--green);color:#fff;border-color:var(--green);}
+.stp-lbl{font-size:9px;font-weight:700;color:var(--muted);text-align:center;letter-spacing:.8px;text-transform:uppercase;}
+.stp.active .stp-lbl{color:var(--purple);}
+.stp.done .stp-lbl{color:var(--green);}
+.stp-line{flex:1;height:2px;background:var(--border);margin-bottom:20px;max-width:70px;transition:background .3s;}
+.stp-line.done{background:var(--green);}
+.wrap{max-width:1160px;margin:0 auto;padding:22px 20px 60px;}
+.card{background:var(--card);border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.06);margin-bottom:16px;overflow:hidden;border:1px solid var(--border);}
+.card-hd{background:var(--navy);padding:12px 20px;display:flex;align-items:center;gap:10px;}
+.card-hd h2{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff;letter-spacing:1px;}
+.chip{background:var(--purple);color:#fff;font-size:9px;font-weight:700;padding:2px 9px;border-radius:20px;}
+.card-bd{padding:20px;}
+.drop{border:2px dashed var(--border);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;background:#FAFAFD;position:relative;}
+.drop:hover,.drop.over{border-color:var(--purple);background:#F3F0FD;}
+.drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.drop-ico{font-size:36px;margin-bottom:8px;}
+.drop h3{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--navy);}
+.drop p{font-size:11px;color:var(--muted);margin-top:4px;}
+.drop-fname{margin-top:8px;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--purple);}
+.sdrop{border:1.5px dashed #C4B8E8;border-radius:8px;padding:12px 14px;cursor:pointer;transition:all .2s;background:#FAFAFD;display:flex;align-items:center;gap:10px;}
+.sdrop:hover{border-color:var(--purple);background:#F3F0FD;}
+.sec-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.sec-lbl::after{content:'';flex:1;height:1px;background:var(--border);}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .18s;font-family:'DM Sans',sans-serif;}
+.btn-purple{background:var(--purple);color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.25);}
+.btn-purple:hover{background:#6D28D9;transform:translateY(-1px);}
+.btn-green{background:var(--green);color:#fff;}
+.btn-green:hover{background:#15803D;transform:translateY(-1px);}
+.btn-orange{background:var(--accent);color:#fff;}
+.btn-ghost{background:transparent;color:var(--purple);border:1.5px solid var(--purple);}
+.btn-ghost:hover{background:var(--purple);color:#fff;}
+.btn-sm{padding:5px 12px;font-size:11px;}
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px;}
+.kpi{background:var(--card);border-radius:10px;padding:14px 16px;border:1px solid var(--border);border-left:4px solid var(--purple);}
+.kpi.k-green{border-left-color:var(--green);}
+.kpi.k-orange{border-left-color:var(--accent);}
+.kpi.k-amber{border-left-color:var(--amber);}
+.kpi-val{font-family:'DM Mono',monospace;font-size:20px;font-weight:500;color:var(--navy);}
+.kpi-lbl{font-size:9px;color:var(--muted);font-weight:600;margin-top:3px;letter-spacing:.5px;text-transform:uppercase;}
+.action-bar{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.tabs{display:flex;gap:3px;background:#EDE8F8;padding:3px;border-radius:9px;width:fit-content;}
+.tab{padding:6px 16px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;transition:all .18s;color:var(--muted);}
+.tab.on{background:#fff;color:var(--navy);box-shadow:0 1px 5px rgba(0,0,0,.1);}
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+thead th{background:var(--navy);color:#CBD5E1;padding:9px 11px;text-align:left;font-weight:600;white-space:nowrap;font-size:9px;letter-spacing:.8px;text-transform:uppercase;}
+tbody tr{border-bottom:1px solid #EEF2F7;transition:background .1s;}
+tbody tr:hover{background:#F5F2FF;}
+tbody td{padding:8px 11px;vertical-align:middle;white-space:nowrap;}
+tr.amb-row{background:#F0F7FF;}
+tr.exp-row{background:#F5F2FF;}
+tr.ip-row{background:#FFF0E6;}
+tr.ph-row{background:#FFFBEB;}
+tr.breil-row{background:#F3E8FF;border-left:4px solid #7C3AED;}
+.pill{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;}
+.p-amb{background:#DBEAFE;color:#1E40AF;}
+.p-exp{background:#EDE9FE;color:#5B21B6;}
+.p-paste{background:#FEF3C7;color:#92400E;}
+.p-punch{background:#D1FAE5;color:#065F46;}
+.day-block{background:var(--card);border-radius:12px;margin-bottom:12px;box-shadow:0 1px 6px rgba(0,0,0,.05);overflow:hidden;border:1px solid var(--border);}
+.day-hd{background:var(--navy);padding:11px 18px;display:flex;align-items:center;justify-content:space-between;}
+.day-hd h3{font-family:'Syne',sans-serif;color:#fff;font-size:13px;font-weight:700;letter-spacing:.8px;}
+.day-hd .dmeta{font-family:'DM Mono',monospace;font-size:10px;color:#7A9ABB;}
+.shift-bar{background:#F4F2FB;padding:5px 18px;border-bottom:1px solid var(--border);}
+.shift-bar span{font-size:10px;color:var(--muted);font-weight:500;}
+.mach-row{display:grid;grid-template-columns:1fr 1fr;}
+.mach-col{padding:12px 16px;border-right:1px solid var(--border);}
+.mach-col:last-child{border-right:none;}
+.mach-lbl{font-size:9px;font-weight:800;letter-spacing:1.2px;padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:8px;text-transform:uppercase;}
+.ml-amb{background:#DBEAFE;color:#1E40AF;}
+.ml-exp{background:#EDE9FE;color:#5B21B6;}
+.jcard{background:#F8F6FF;border:1px solid var(--border);border-radius:8px;padding:10px 13px;margin-bottom:7px;border-left:4px solid var(--purple);transition:box-shadow .15s;}
+.jcard:hover{box-shadow:0 2px 10px rgba(0,0,0,.08);}
+.jname{font-size:11px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+.jmeta{font-size:10px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;}
+.jtimes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
+.jt-box{border-radius:6px;padding:5px 8px;text-align:center;}
+.jt-mr{background:#FEFCE8;border:1px solid #FDE68A;}
+.jt-ps{background:#F5F3FF;border:1px solid #DDD6FE;}
+.jt-ec{background:#F0FDF4;border:1px solid #BBF7D0;}
+.jt-lbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;color:#92400E;}
+.jt-ps .jt-lbl{color:#5B21B6;}
+.jt-ec .jt-lbl{color:#166534;}
+.jt-time{font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:#92400E;}
+.jt-ps .jt-time{color:#5B21B6;}
+.jt-ec .jt-time{color:#166534;}
+.jt-date{font-size:9px;color:var(--muted);}
+.idle{font-size:10px;color:#BCC5D3;padding:10px 0;text-align:center;font-style:italic;}
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:200;}
+.modal-ov.on{display:flex;}
+.modal{background:#fff;border-radius:16px;padding:26px;width:480px;max-width:95vw;box-shadow:0 24px 60px rgba(0,0,0,.22);animation:su .2s ease;}
+@keyframes su{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--navy);margin-bottom:16px;}
+.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
+.fg label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+.fg input,.fg select{padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;outline:none;}
+.fg input:focus,.fg select:focus{border-color:var(--purple);}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.fg-full{grid-column:1/-1;}
+.mbtns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--dark);color:#fff;padding:11px 18px;border-radius:10px;font-size:12px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,.25);transform:translateY(70px);opacity:0;transition:all .25s;z-index:300;border-left:3px solid var(--purple);max-width:380px;}
+.toast.on{transform:translateY(0);opacity:1;}
+.hidden{display:none!important;}
+
+/* MACHINE BREAKDOWN PANEL */
+.bd-panel{background:#1a0d00;border:2px solid #f97316;border-radius:12px;padding:16px 20px;margin-bottom:16px;}
+.bd-panel-hd{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.bd-panel-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#f97316;display:flex;align-items:center;gap:8px;}
+.bd-status-msg{font-size:11px;color:#64748b;font-style:italic;margin-top:4px;}
+.bd-mode-btn{padding:8px 16px;border-radius:8px;border:2px solid #2a3f55;background:#0d1b2a;color:#94a3b8;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:6px;}
+.bd-mode-btn.sel{background:#3d1200;border-color:#f97316;color:#fb923c;}
+.bd-reset-btn{background:#1a2736;border:1.5px solid #374151;color:#64748b;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.bd-reset-btn:hover{border-color:#ef4444;color:#ef4444;}
+.bd-mach-btn{padding:7px 14px;border-radius:8px;border:2px solid #2a3f55;background:#0d1b2a;color:#94a3b8;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;}
+.bd-mach-btn.sel-amb{background:#1e3a5f;border-color:#3b82f6;color:#60a5fa;}
+.bd-mach-btn.sel-exp{background:#2e1065;border-color:#8b5cf6;color:#c4b5fd;}
+.bd-mach-btn.sel-both{background:#1e3a5f;border-color:#3b82f6;color:#60a5fa;}
+.bd-date-in{padding:7px 10px;border:1.5px solid #2a3f55;border-radius:6px;font-size:13px;font-weight:600;background:#0d1b2a;color:#fff;outline:none;font-family:'DM Sans',sans-serif;}
+.bd-apply-btn{background:#f97316;border:none;color:#fff;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.bd-apply-btn:hover{background:#ea6c0a;}
+.bd-active-chip{display:inline-flex;align-items:center;gap:6px;background:#3d1200;border:1.5px solid #f97316;color:#fb923c;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;}
+/* Specific jobs modal */
+.bd-sp-job-row{display:flex;align-items:flex-start;gap:12px;background:#0f2035;border:1.5px solid #1e3a5f;border-radius:10px;padding:12px 14px;cursor:pointer;transition:all .15s;user-select:none;}
+.bd-sp-job-row:hover{border-color:#3b82f6;background:#112540;}
+.bd-sp-job-row.bd-sp-sel{background:#0d2a4a;border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.2);}
+.bd-sp-check{width:22px;height:22px;border-radius:6px;border:2px solid #2a3f55;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;margin-top:2px;color:#fff;transition:all .15s;}
+.bd-sp-job-row.bd-sp-sel .bd-sp-check{background:#3b82f6;border-color:#3b82f6;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">AIA <span>INDUSTRIES</span> <span style="font-size:11px;font-weight:400;color:#7A8FA6;letter-spacing:1px;">PASTING SCHEDULE</span></div>
+  <div class="topdate" id="topDate"></div>
+</div>
+<div class="stepper">
+  <div class="stp active" id="si1"><div class="stp-num">1</div><div class="stp-lbl">Upload<br>Files</div></div>
+  <div class="stp-line" id="sl1"></div>
+  <div class="stp" id="si2"><div class="stp-num">2</div><div class="stp-lbl">Pasting<br>Schedule</div></div>
+</div>
+<div class="wrap">
+
+<!-- PAGE 1 -->
+<div id="pg1">
+  <div class="card">
+    <div class="card-hd"><h2>📂 STEP 1 — Upload Files</h2></div>
+    <div class="card-bd">
+      <div class="sec-lbl">Required</div>
+      <div class="drop" id="dropZone">
+        <input type="file" id="fileIn" accept=".csv,.xlsx,.xls,.xlsm" onchange="onTrackFile(this)">
+        <div class="drop-ico">📋</div>
+        <h3>AIA Track Record</h3>
+        <p>PASTING status jobs येतील — CSV / XLSX / XLSM</p>
+        <div class="drop-fname" id="dropFname"></div>
+      </div>
+      <div class="sec-lbl" style="margin-top:18px;">Optional Files</div>
+      <div style="display:grid;grid-template-columns:1fr;gap:12px;">
+        <div class="sdrop" onclick="document.getElementById('punchSchedFile').click()" style="border-color:#15803D;">
+          <input type="file" id="punchSchedFile" accept=".xlsx,.xls,.xlsm" onchange="onPunchSchedFile(this)" style="display:none">
+          <span style="font-size:24px;flex-shrink:0;">🔨</span>
+          <div style="flex:1;">
+            <div style="font-size:12px;font-weight:700;color:#15803D;">Punching Schedule Excel</div>
+            <div style="font-size:10px;color:var(--muted);">AIA Punching Plan — End Date नंतर next working day ला pasting schedule मध्ये येतात</div>
+          </div>
+          <div class="drop-fname" id="punchSchedFname" style="margin-top:0;font-size:11px;color:#15803D;">Not loaded</div>
+        </div>
+        <div class="sdrop" onclick="document.getElementById('breilFile').click()">
+          <input type="file" id="breilFile" accept=".xlsx,.xls,.xlsm,.csv" onchange="onBreilFile(this)" style="display:none">
+          <span style="font-size:24px;flex-shrink:0;">✏️</span>
+          <div style="flex:1;">
+            <div style="font-size:12px;font-weight:700;color:var(--navy);">Braille File</div>
+            <div style="font-size:10px;color:var(--muted);">Code → Line + Tool Line (Expert machine)</div>
+          </div>
+          <div class="drop-fname" id="breilFname" style="margin-top:0;font-size:11px;">Not loaded</div>
+        </div>
+      </div>
+      <div style="background:#F0EDFA;border:1px solid #DDD6FE;border-radius:10px;padding:12px 16px;margin-top:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <label style="font-size:12px;font-weight:700;color:#5B21B6;">📅 Schedule Start Date:</label>
+        <input type="date" id="schedDate" style="padding:6px 10px;border:1.5px solid #DDD6FE;border-radius:6px;font-size:13px;font-family:inherit;outline:none;color:#5B21B6;font-weight:600;">
+        <span style="font-size:11px;color:var(--muted);">Default = Today</span>
+      </div>
+
+      <!-- HOLIDAY MANAGER -->
+      <div style="background:#FFF7ED;border:1.5px solid #FDE68A;border-radius:10px;padding:14px 16px;margin-top:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+          <label style="font-size:12px;font-weight:700;color:#92400E;">🎉 Factory Holidays (Plant Off Days)</label>
+          <span style="font-size:10px;color:var(--muted);">या dates ला scheduling होणार नाही — jobs skip होतील</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <input type="date" id="holidayDateIn" style="padding:6px 10px;border:1.5px solid #FDE68A;border-radius:6px;font-size:13px;font-family:inherit;outline:none;color:#92400E;font-weight:600;">
+          <input type="text" id="holidayNameIn" placeholder="Holiday name (e.g. Diwali)" style="padding:6px 10px;border:1.5px solid #FDE68A;border-radius:6px;font-size:13px;font-family:inherit;outline:none;flex:1;min-width:160px;">
+          <button class="btn btn-sm" style="background:#D97706;color:#fff;border:none;" onclick="addHoliday()">➕ Add Holiday</button>
+        </div>
+        <div id="holidayList" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;"></div>
+      </div>
+      <div style="margin-top:16px;">
+        <button class="btn btn-purple" onclick="buildSchedule()" id="genBtn" disabled style="opacity:.5;">🍯 Generate Pasting Schedule →</button>
+      </div>
+    </div>
+  </div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-top:0;">
+    <div style="font-size:11px;color:var(--muted);line-height:1.8;">
+      <b style="color:var(--navy);">Machine Logic:</b> &nbsp;
+      Braille jobs (Embossing Details असलेले) → फक्त <b style="color:#5B21B6;">Expert</b> &nbsp;|&nbsp;
+      बाकी → Auto (earliest available) &nbsp;|&nbsp;
+      <b style="color:var(--navy);">Speed:</b> Reverse Tuck / Temper Off 50K/hr · Catch Cover / Sleeves 25K/hr · Lock Bottom 25K/hr · Partition 30K/hr &nbsp;|&nbsp;
+      <b style="color:#16A34A;">Total KG:</b> CutSize1 × GSM ÷ 1550 ÷ 1000 × Cut Sheets &nbsp;|&nbsp;
+      <b style="color:#DC2626;">Excluded:</b> <span style="color:#DC2626;">Flyer · Label · Tray · Other · Tag · Calender</span> — या item types चे jobs schedule मध्ये येणार नाहीत
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 2 -->
+<div id="pg2" class="hidden">
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <!-- MACHINE BREAKDOWN PANEL -->
+  <div class="bd-panel" id="bdPanel">
+    <div class="bd-panel-hd">
+      <div>
+        <div class="bd-panel-title">🔧 Machine Breakdown / Delay</div>
+        <div class="bd-status-msg" id="bdStatusMsg">Koi breakdown set nahi. Schedule normal aahe.</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button class="bd-mode-btn" id="bdBtnFull" onclick="bdFullDayFlow()">📅 Full Day Shift — Sagle Jobs Next Day</button>
+        <button class="bd-mode-btn" id="bdBtnSpec" onclick="bdOpenSpecificModal()">✏️ Specific Jobs Select Karo</button>
+        <button class="bd-reset-btn" onclick="bdReset()">↺ Reset All</button>
+      </div>
+    </div>
+    <div id="bdActiveChips" style="display:none;margin-top:10px;flex-wrap:wrap;gap:6px;"></div>
+  </div>
+
+  <!-- Full Day inline form -->
+  <div id="bdFullDayForm" style="display:none;background:#1a0d00;border:1.5px solid #f97316;border-radius:10px;padding:14px 18px;margin-bottom:14px;">
+    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#f97316;margin-bottom:12px;">📅 Full Day Shift — Machine ani Date select karo</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">📅 Date</label>
+        <input type="date" id="bdFullDateIn" class="bd-date-in">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">🔧 Machine</label>
+        <div style="display:flex;gap:6px;">
+          <button class="bd-mach-btn" id="bdFMachAmb" onclick="bdFSelectMach('Ambition')">🔵 Ambition</button>
+          <button class="bd-mach-btn" id="bdFMachExp" onclick="bdFSelectMach('Expert')">🟣 Expert</button>
+          <button class="bd-mach-btn" id="bdFMachBoth" onclick="bdFSelectMach('Both')">⚡ Both</button>
+        </div>
+      </div>
+      <button class="bd-apply-btn" onclick="bdApplyFull()">✅ Apply Full Day Shift</button>
+      <button class="bd-reset-btn" onclick="document.getElementById('bdFullDayForm').style.display='none'">✕ Cancel</button>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <div class="tabs">
+      <div class="tab on" id="tabDay" onclick="switchTab('day')">📅 Pasting Day-wise</div>
+      <div class="tab" id="tabTbl" onclick="switchTab('tbl')">📋 Pasting Table</div>
+      <div class="tab" id="tabPunch" onclick="switchTab('punch')">🔨 Punching Schedule</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button class="btn btn-ghost btn-sm" onclick="goPg(1)">← Back</button>
+      <button class="btn btn-orange btn-sm" onclick="openManualModal()">➕ Add Job</button>
+      <button class="btn btn-green btn-sm" onclick="dlExcel()">⬇️ Full Plan Excel</button>
+      <button class="btn btn-sm" style="background:#7C3AED;color:#fff;" onclick="dlMachineWise()">⬇️ Machine Wise Excel</button>
+    </div>
+  </div>
+  <div id="dayView"><div id="dayCards"></div></div>
+  <div id="tblView" class="hidden">
+    <div class="card">
+      <div class="card-hd"><h2>📋 Full Pasting Schedule</h2><span class="chip" id="tblCount">0 JOBS</span></div>
+      <div class="card-bd" style="padding:0;">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>JCNO</th><th>Customer</th><th>Job Name</th>
+              <th>Pending Qty</th><th>Item Type</th><th>Dim</th><th>Job Status</th><th>Next Process</th><th>Code</th>
+              <th>Embossing</th><th>Line</th>
+              <th>CutSize1 (in)</th><th>GSM</th><th>Tot. Cut Sh</th><th>Total KG</th>
+              <th>Machine</th><th>MR Type</th>
+              <th>MR Time</th><th>MR Date</th>
+              <th>Start Time</th><th>Start Date</th>
+              <th>End Time</th><th>End Date</th><th>Plan Type</th><th>Remarks</th>
+            </tr></thead>
+            <tbody id="tblBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- PUNCHING SCHEDULE VIEW -->
+  <div id="punchView" class="hidden">
+    <div class="card">
+      <div class="card-hd">
+        <h2>🔨 PUNCHING SCHEDULE</h2><span class="chip" id="punchJobCount">0 JOBS</span>
+        <span style="margin-left:auto;font-size:10px;color:#A78BFA;">End Date + next working day ला pasting schedule मध्ये automatically येतात</span>
+      </div>
+    </div>
+    <div id="punchDayCards"><div style="text-align:center;padding:60px;color:var(--muted);">📂 Step 1 मध्ये Punching Schedule Excel upload करा</div></div>
+  </div>
+</div>
+</div><!-- /wrap -->
+
+<!-- MANUAL MODAL -->
+<div class="modal-ov" id="manualModal">
+  <div class="modal">
+    <h3>➕ Add Manual Job</h3>
+    <div class="fgrid">
+      <div class="fg fg-full"><label>Job Name</label><input id="mj_name" placeholder="Job name"></div>
+      <div class="fg"><label>JCNO</label><input id="mj_jcno" placeholder="25JA/9999"></div>
+      <div class="fg"><label>Customer</label><input id="mj_cust" placeholder="Customer"></div>
+      <div class="fg"><label>Job Qty</label><input type="number" id="mj_qty" placeholder="10000"></div>
+      <div class="fg"><label>Cut Sheet</label><input type="number" id="mj_cut" placeholder="5000"></div>
+      <div class="fg"><label>Item Type</label>
+        <select id="mj_itype">
+          <option value="REVERSE STUCK">Reverse Stuck (50K/hr)</option>
+          <option value="TEMPER OFF">Temper Off (50K/hr)</option>
+          <option value="CATCH COVER">Catch Cover (25K/hr)</option>
+          <option value="SLEEVES">Sleeves (25K/hr)</option>
+          <option value="LOCK BOTTOM">Lock Bottom (25K/hr)</option>
+          <option value="PARTITION">Partition (30K/hr)</option>
+        </select>
+      </div>
+      <div class="fg"><label>Machine</label>
+        <select id="mj_mach"><option value="auto">Auto</option><option value="Ambition">Ambition</option><option value="Expert">Expert</option></select>
+      </div>
+      <div class="fg"><label>Embossing / Braille</label><input id="mj_emb" placeholder="Optional — Expert ला jaato"></div>
+    </div>
+    <div class="mbtns">
+      <button class="btn btn-ghost" onclick="closeManual()">Cancel</button>
+      <button class="btn btn-purple" onclick="addManualJob()">➕ Add</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- BREAKDOWN — SPECIFIC JOBS MODAL -->
+<div class="modal-ov" id="bdSpecificModal">
+  <div class="modal" style="width:620px;max-height:90vh;display:flex;flex-direction:column;background:#0d1b2a;border:1.5px solid #1e3a5f;padding:0;overflow:hidden;border-radius:16px;">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid #1e3a5f;flex-shrink:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#f97316;">✏️ Specific Jobs — Next Day la Shift Kara</div>
+        <button onclick="bdCloseSpecificModal()" style="background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1;">✕</button>
+      </div>
+      <div style="font-size:12px;color:#64748b;margin-top:4px;">Jobs select kara jevde next working day la shift karayche aahet.</div>
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:flex-end;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">📅 Date</label>
+          <input type="date" id="bdSpDateIn" class="bd-date-in" oninput="bdSpRefresh()" onchange="bdSpRefresh()" style="font-size:14px;font-weight:700;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">🔧 Machine</label>
+          <div style="display:flex;gap:6px;">
+            <button class="bd-mach-btn" id="bdSpMachAmb" onclick="bdSpSelectMach('Ambition')">🔵 Ambition</button>
+            <button class="bd-mach-btn" id="bdSpMachExp" onclick="bdSpSelectMach('Expert')">🟣 Expert</button>
+            <button class="bd-mach-btn" id="bdSpMachBoth" onclick="bdSpSelectMach('Both')">⚡ Both</button>
+          </div>
+        </div>
+        <div style="font-size:11px;color:#475569;align-self:center;">Jobs ya date la filter karo</div>
+      </div>
+    </div>
+    <div id="bdSpJobList" style="flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:8px;">
+      <div style="text-align:center;padding:40px;color:#475569;font-size:13px;">📅 Upar date aani machine select karo</div>
+    </div>
+    <div style="padding:14px 24px;border-top:1px solid #1e3a5f;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;background:#0a1520;">
+      <div id="bdSpCount" style="font-size:13px;font-weight:700;color:#64748b;">0 jobs selected</div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="bdCloseSpecificModal()" style="background:transparent;border:1.5px solid #1e3a5f;color:#94a3b8;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Cancel</button>
+        <button onclick="bdApplySpecific()" style="background:#1d6fe8;border:none;color:#fff;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">✏️ Shift Selected Jobs</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DAY_WORK=1320;
+var holidays=new Set(); // 'YYYY-MM-DD' strings
+let BASE=new Date();BASE.setHours(0,0,0,0);
+let pasteSched=[],breilMap={},trackJobs=[],punchJobs=[],manualJobs=[],trackMap={};
+
+// Item types जे Pasting ला जात नाहीत
+const EXCLUDED_PASTE = ['LABEL','KAPPA BOARD TRAY','KAPPA BOARD','HOLDER','LEAFLET','MAGNET','OUTER','RIGID WALLET PACK','RIGID WALLET','WALLET PACK','WALLET','RIGID BOX','TAG','CALENDER','CALENDAR'];
+
+// Exact match exclusions — या item types चे jobs पूर्णपणे skip होतील
+const EXCLUDED_EXACT = ['FLYER','TRAY','OTHER','OTHERS','LABEL','LABLE','TAG','CALENDER','CALENDAR'];
+
+function isExcludedFromPaste(itemType){
+  const it=(itemType||'').toUpperCase().trim();
+  // Exact match check (Flyer, Tray, Other)
+  if(EXCLUDED_EXACT.includes(it)) return true;
+  // Partial match check (Label, Kappa Board Tray, etc.)
+  return EXCLUDED_PASTE.some(x=>it.includes(x));
+}
+
+function getPasteParams(it){
+  const s=(it||'').toUpperCase().replace(/\s+/g,'');
+  if(s.includes('LOCK'))                    return{speed:25000/60,mr:90};
+  if(s.includes('CATCH')||s.includes('SLEEVE')) return{speed:25000/60,mr:45};
+  if(s.includes('PARTITION'))               return{speed:30000/60,mr:30};
+  return{speed:50000/60,mr:15}; // Reverse Stuck / default
+}
+
+function parseCutSize1(val){
+  if(!val) return 0;
+  const s=String(val).trim();
+  const m=s.match(/([\d.]+)\s*[xX×]\s*([\d.]+)/);
+  if(m) return parseFloat(m[1])*parseFloat(m[2]);
+  const n=parseFloat(s);
+  return isNaN(n)?0:n;
+}
+function calcKg(j){
+  const cutSh=(j.totalCutSh&&j.totalCutSh>0)?j.totalCutSh:(j.cut||0);
+  const area=parseCutSize1(j.cutSize1);
+  if(!area||!j.gsm||!cutSh) return 0;
+  return Math.round(area * j.gsm / 1550 / 1000 * cutSh * 100) / 100;
+}
+
+// ── Day-wise KG for multi-day jobs (time-proportional) ──
+function calcKgForDay(j, dayKey){
+  const prodWM = j.prodWM || 0;
+  const eWM    = j.eWM    || 0;
+  const totalProc = eWM - prodWM;
+  if(!prodWM || !eWM || totalProc <= 0 || j.sKey === j.eKey){
+    return { sheets: j.totalCutSh || j.cut || 0, kg: calcKg(j) };
+  }
+  const dayStartWM = dayKeyToWM(dayKey);
+  const dayEndWM   = dayStartWM + DAY_WORK;
+  const overlapStart = Math.max(prodWM, dayStartWM);
+  const overlapEnd   = Math.min(eWM,   dayEndWM);
+  if(overlapEnd <= overlapStart) return { sheets: 0, kg: 0 };
+  const fraction = (overlapEnd - overlapStart) / totalProc;
+  const totalCutSh = (j.totalCutSh && j.totalCutSh > 0) ? j.totalCutSh : (j.cut || 0);
+  const sheets = Math.round(fraction * totalCutSh);
+  const kg = Math.round(calcKg({...j, totalCutSh: fraction * totalCutSh}) * 100) / 100;
+  return { sheets, kg };
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('topDate').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+  const t=new Date();
+  document.getElementById('schedDate').value=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+  const dz=document.getElementById('dropZone');
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files[0])handleTrackFile(e.dataTransfer.files[0]);});
+});
+
+function onTrackFile(inp){if(inp.files[0])handleTrackFile(inp.files[0]);}
+function handleTrackFile(f){
+  document.getElementById('dropFname').textContent='📄 '+f.name;
+  readFile(f,rows=>{
+    // ── trackMap: ALL jobs → cutSize1/gsm/dim lookup for punch file enrichment ──
+    // ERP column names: DocId, ClientCodeNo/MISCodeNo, JobName, ClientName, JobQty,
+    //   TotalCutSheets, PendingQty, Job_Status, NextProcess, CutSize1_Inch,
+    //   Item_Type, Item_Class, CartonDimension, EmbossingDetail, CommitedDate, BoardGSM
+    trackMap={};
+    rows.forEach(r=>{
+      const jcno=(fg(r,'DocId','JCNO','Jcno','JC NO','Jc No','jcno')||'').trim();
+      if(!jcno||jcno.length<4) return;
+      trackMap[jcno]={
+        cutSize1:fg(r,'CutSize1_Inch','CutSize1Inch','Cut Size1 Inch','CutSize1','Cut Size 1'),
+        gsm:parseFloat(fg(r,'BoardGSM','GSM','Gsm','gsm','G.S.M','Paper GSM'))||0,
+        totalCutSh:parseFloat(fg(r,'TotalCutSheets','Tot. Cut SH','Tot.Cut SH','TotCutSH','Total Cut Sheet','tot. cut sh'))||parseFloat(fg(r,'FullBoardSH'))||0,
+        dim:fg(r,'CartonDimension','CartonDim.','Carton Dim','CartonDim','Dimension','DIM'),
+        jobStatus:(fg(r,'Job_Status','Job Status','JobStatus')||'').trim(),
+        nextProcess:(fg(r,'NextProcess','Next Process')||'').trim(),
+      };
+    });
+
+    // ── Priority order — exact full list from image ──
+    function getPastePriority(js,np){
+      const s=(js||'').trim().toUpperCase();
+      const n=(np||'').trim().toLowerCase();
+      if(s==='PASTING(R)')                                           return 1;
+      if((s==='STRIPPING(F)'||s==='STRIPING(F)') && n==='pasting')  return 2;
+      if((s==='STRIPPING(R)'||s==='STRIPING(R)') && n==='pasting')  return 3;
+      if(s==='PUNCHING(F)'    && n==='pasting')                      return 4;
+      if(s==='PUNCHING(R)'    && n==='pasting')                      return 5;
+      if(s==='LAMINATION(F)'  && n==='pasting')                      return 6;
+      if(s==='PRINTING(R)'    && n==='pasting')                      return 7;
+      if(s==='LAMINATION(F)'  && n==='punching')                     return 8;
+      if(s==='PRINTING(F)'    && n==='punching')                     return 9;
+      if(s==='PRINTING(R)'    && n==='punching')                     return 10;
+      if(s==='COATING(F)'     && n==='coating')                      return 11;
+      if(s==='COATING(R)'     && n==='coating')                      return 12;
+      if(s==='VDP(F)'         && n==='coating')                      return 13;
+      if(s==='VDP(R)'         && n==='coating')                      return 14;
+      if(s==='PRINTING(F)'    && n==='coating')                      return 15;
+      if(s==='PRINTING(R)'    && n==='coating')                      return 16;
+      if(s==='PRINTING(F)'    && n==='vdp')                          return 17;
+      if(s==='PRINTING(R)'    && n==='vdp')                          return 18;
+      if(s==='JOB NOT STARTED'&& n==='printing')                     return 19;
+      return 99;
+    }
+
+    const pasteRows=rows.filter(r=>{
+      const js=(fg(r,'Job_Status','Job Status','JobStatus')||'').trim();
+      const np=(fg(r,'NextProcess','Next Process')||'').trim().toLowerCase();
+      const jsu=js.toUpperCase();
+      if(jsu==='PASTING(F)') return false; // Pasting(F) exclude — already done
+      const match=
+        jsu==='PASTING(R)' ||
+        ((jsu==='STRIPPING(F)'||jsu==='STRIPING(F)') && np==='pasting') ||
+        ((jsu==='STRIPPING(R)'||jsu==='STRIPING(R)') && np==='pasting') ||
+        (jsu==='PUNCHING(F)'    && np==='pasting') ||
+        (jsu==='PUNCHING(R)'    && np==='pasting') ||
+        (jsu==='LAMINATION(F)'  && np==='pasting') ||
+        (jsu==='PRINTING(R)'    && np==='pasting') ||
+        (jsu==='LAMINATION(F)'  && np==='punching') ||
+        (jsu==='PRINTING(F)'    && np==='punching') ||
+        (jsu==='PRINTING(R)'    && np==='punching') ||
+        (jsu==='COATING(F)'     && np==='coating') ||
+        (jsu==='COATING(R)'     && np==='coating') ||
+        (jsu==='VDP(F)'         && np==='coating') ||
+        (jsu==='VDP(R)'         && np==='coating') ||
+        (jsu==='PRINTING(F)'    && np==='coating') ||
+        (jsu==='PRINTING(R)'    && np==='coating') ||
+        (jsu==='PRINTING(F)'    && np==='vdp') ||
+        (jsu==='PRINTING(R)'    && np==='vdp') ||
+        (jsu==='JOB NOT STARTED'&& np==='printing');
+      return match && !isExcludedFromPaste(fg(r,'Item_Type','Item Type','Item\nType ','ItemType','ITEM TYPE'));
+    });
+    // Sort: priority group first, then dim-wise within same group
+    pasteRows.sort((a,b)=>{
+      const ja=fg(a,'Job_Status','Job Status','JobStatus'), na=fg(a,'NextProcess','Next Process');
+      const jb=fg(b,'Job_Status','Job Status','JobStatus'), nb=fg(b,'NextProcess','Next Process');
+      const pa=getPastePriority(ja,na), pb=getPastePriority(jb,nb);
+      if(pa!==pb) return pa-pb;
+      const da=(fg(a,'CartonDimension','CartonDim.','Carton Dim')||'');
+      const db=(fg(b,'CartonDimension','CartonDim.','Carton Dim')||'');
+      return da.localeCompare(db);
+    });
+
+    trackJobs=pasteRows.map(r=>{
+      const js=fg(r,'Job_Status','Job Status','JobStatus');
+      const np=fg(r,'NextProcess','Next Process');
+      return {
+      jcno:     fg(r,'DocId','JCNO','Jcno','JC NO','Jc No','jcno'),
+      name:     fg(r,'JobName','Job Name'),
+      cust:     fg(r,'ClientName','CUSTOMER NAME','Customer Name','CustomerName'),
+      qty:      parseFloat(fg(r,'PendingQty','Pending Qty','Pending\nQty ','Pending\nQty'))||0,
+      cut:      parseFloat(fg(r,'TotalCutSheets','Tot. Cut SH','Tot.Cut SH','TotCutSH','Total Cut Sheet','Cut Sheet','tot. cut sh'))||0,
+      itemType: fg(r,'Item_Type','Item Type','Item\nType ','ItemType','ITEM TYPE'),
+      itemClass:fg(r,'Item_Class','Item Class','Item\nClass','ItemClass'),
+      code:     fg(r,'MISCodeNo','ClientCodeNo','Code','code','CODE','MIS Code','MISCode'),
+      dim:      fg(r,'CartonDimension','CartonDim.','Carton Dim','CartonDim','Dimension','DIM'),
+      totalCutSh:parseFloat(fg(r,'TotalCutSheets','Tot. Cut SH','Tot.Cut SH','TotCutSH','Total Cut Sheet','tot. cut sh'))||parseFloat(fg(r,'FullBoardSH'))||0,
+      cutSize1: fg(r,'CutSize1_Inch','CutSize1Inch','Cut Size1 Inch','CutSize1','Cut Size 1'),
+      gsm:      parseFloat(fg(r,'BoardGSM','GSM','Gsm','gsm','G.S.M','Paper GSM'))||0,
+      embossing:fg(r,'EmbossingDetail','Embossing Detail','Embossing','embossing detail','embossingdetail'),
+      nextProcess:np,
+      jobStatus:js,
+      commitDate:fg(r,'CommitedDate','Commit Date','CommitDate','Revised Commitment date','Revised Commitement date'),
+      _priority: getPastePriority(js,np),
+      status:'PASTING',planType:'Pasting',readyKey:''
+    };});
+    if(trackJobs.length){
+      const j=trackJobs[0];
+      toast('✅ Track Record: '+trackJobs.length+' jobs | cutSize1='+j.cutSize1+' | gsm='+j.gsm);
+    } else {
+      toast('⚠️ No PASTING jobs found!');
+    }
+    checkReady();
+  });
+}
+
+function onPunchFile(inp){if(inp.files[0])handlePunchFile(inp.files[0]);}
+function handlePunchFile(f){
+  document.getElementById('punchFname').textContent='📄 '+f.name;
+  toast('⏳ Punch file load hoat aahe...');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    setTimeout(()=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',raw:false,bookVBA:false,bookFiles:false,bookProps:false});
+      punchJobs=[];
+      wb.SheetNames.forEach(sn=>{
+        const ws=wb.Sheets[sn];if(!ws||!ws['!ref'])return;
+        const range=XLSX.utils.decode_range(ws['!ref']);
+        if(range.e.c>120) range.e.c=120;
+        const limitedRef=XLSX.utils.encode_range(range);
+        const allRows=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false,header:1,range:limitedRef});
+        let hdrIdx=-1;
+        for(let i=0;i<Math.min(allRows.length,20);i++){
+          if(allRows[i].some(c=>String(c||'').replace(/[\s\r\n]+/g,'').toUpperCase()==='JCNO')){hdrIdx=i;break;}
+        }
+        if(hdrIdx<0){console.log('No JCNO header in sheet:',sn);return;}
+        const hdr=allRows[hdrIdx].map(h=>String(h||'').replace(/[\r\n\t]+/g,' ').replace(/\s{2,}/g,' ').trim());
+        const dataRows=allRows.slice(hdrIdx+1);
+        dataRows.forEach(row=>{
+          const r={};hdr.forEach((h,i)=>{if(h)r[h]=String(row[i]===null||row[i]===undefined?'':row[i]).trim();});
+          const jcno=(r['JCNO']||r['Jcno']||r['JC NO']||'').trim();
+          if(!jcno||jcno.length<4)return;
+          if(/total|machine|grand|punching total|b1|b2/i.test(jcno))return;
+          const qty=parseFloat(r['Qty']||r['Job Qty']||0)||0;
+          const cut=parseFloat(r['Cut Sh']||r['Cut Sheet']||r['Tot. Cut SH']||0)||0;
+          if(!qty&&!cut)return;
+          const planType=(r['Plan Type']||r['PlanType']||'Scheduled').trim();
+          const endDate=(r['End Date']||r['EndDate']||r['Complete']||'').trim();
+          const punchDateVal=(r['Punch Date']||r['PunchDate']||'').trim();
+          const readyKey=parseDate(endDate)||parseDate(punchDateVal)||'';
+          const isComingSoon=planType==='7-Day Plan';
+          const isPH=planType==='PH';
+          punchJobs.push({
+            jcno,name:(r['Job Name']||r['JobName']||''),cust:(r['Customer']||''),
+            qty,cut:cut||qty,itemType:(r['Item Type']||r['ItemType']||''),
+            code:(r['Code']||r['MIS Code']||''),
+            embossing:(r['Embossing']||r['Embossing Details']||''),
+            dim:(r['Carton Dim']||r['Dimension']||r['Carton Dimension']||r['DIM']||''),
+            totalCutSh:parseFloat(r['Tot. Cut SH']||r['TotCutSH']||r['Total Cut Sheet']||r['Cut Sh']||r['Cut Sheet']||0)||0,
+            cutSize1:(r['CutSize1_Inch']||r['Cut Size1 Inch']||r['CutSize1']||r['Cut Size 1']||(trackMap[jcno]&&trackMap[jcno].cutSize1)||''),
+            gsm:parseFloat(r['GSM']||r['Gsm']||r['gsm']||r['G.S.M']||r['Paper GSM']||0)||(trackMap[jcno]&&trackMap[jcno].gsm)||0,
+            status:(r['Status']||planType),
+            planType:isComingSoon?'Coming Soon':(isPH?'PH':'Scheduled'),
+            isComingSoon,isPH,readyKey
+          });
+        });
+      });
+      const seen=new Set();
+      punchJobs=punchJobs.filter(j=>{
+        if(seen.has(j.jcno))return false;
+        seen.add(j.jcno);
+        return !isExcludedFromPaste(j.itemType);
+      });
+      const cs=punchJobs.filter(j=>j.isComingSoon).length;
+      const ph=punchJobs.filter(j=>j.isPH).length;
+      const done=punchJobs.filter(j=>!j.isComingSoon&&!j.isPH).length;
+      toast(`✅ Punch: ${done} scheduled + ${ph} PH + ${cs} coming soon`);
+      checkReady();
+    }catch(err){toast('❌ Punch file error: '+err.message);}
+    },100);
+  };
+  reader.readAsArrayBuffer(f);
+}
+
+function onBreilFile(inp){if(inp.files[0])handleBreilFile(inp.files[0]);}
+function handleBreilFile(f){
+  document.getElementById('breilFname').textContent='📄 '+f.name;
+  readFile(f,rows=>{
+    breilMap={};
+    rows.forEach(r=>{
+      const keys=Object.keys(r);
+      const ck=keys.find(k=>/code/i.test(k))||keys[0];
+      const lk=keys.find(k=>/^line$/i.test(k.trim()))||keys.find(k=>/line/i.test(k)&&!/tool/i.test(k));
+      const tk=keys.find(k=>/tool/i.test(k));
+      const code=String(r[ck]||'').trim();
+      if(code)breilMap[code.toLowerCase().replace(/\s+/g,'')]={line:lk?String(r[lk]||'').trim():'',toolLine:tk?String(r[tk]||'').trim():''};
+    });
+    toast('✅ Braille: '+Object.keys(breilMap).length+' entries');
+    if(pasteSched.length)buildSchedule();
+  });
+}
+
+function readFile(f,cb){
+  const isCSV=/\.csv$/i.test(f.name);
+  if(isCSV){Papa.parse(f,{header:true,skipEmptyLines:true,complete:r=>cb(normalizeKeys(r.data)),error:e=>toast('❌ '+e.message)});return;}
+  toast('⏳ File load hoat aahe...');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    setTimeout(()=>{
+      try{
+        const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',raw:false,bookVBA:false,bookFiles:false,bookProps:false});
+        const trackSheet=wb.SheetNames.find(n=>n.toLowerCase().includes('track')||n.toLowerCase().includes('record'));
+        const best=trackSheet||wb.SheetNames.reduce((a,n)=>{const s=wb.Sheets[n];if(!s||!s['!ref'])return a;return XLSX.utils.decode_range(s['!ref']).e.r>XLSX.utils.decode_range(wb.Sheets[a]?.['!ref']||'A1:A1').e.r?n:a;},wb.SheetNames[0]);
+        setTimeout(()=>{
+          try{
+            const ws=wb.Sheets[best];
+            const range=XLSX.utils.decode_range(ws['!ref']);
+            if(range.e.c>120) range.e.c=120;
+            const limitedRef=XLSX.utils.encode_range(range);
+            // Use header:1 (array mode) — avoids XLSX.js key mangling on large files
+            const allRows=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false,header:1,range:limitedRef});
+            // Find header row — look for JCNO / Jc No / JC NO in any cell
+            let hdrIdx=0;
+            for(let i=0;i<Math.min(allRows.length,20);i++){
+              if(allRows[i].some(c=>{const s=String(c||'').replace(/[\s\n\r_]+/g,'').toUpperCase();return s==='JCNO'||s==='JCNO';})){hdrIdx=i;break;}
+              if(allRows[i].some(c=>String(c||'').trim().toUpperCase()==='JC NO')){hdrIdx=i;break;}
+            }
+            const hdr=allRows[hdrIdx].map(h=>String(h===null||h===undefined?'':h).replace(/[\r\n\t]+/g,' ').replace(/\s{2,}/g,' ').trim());
+            const dataRows=allRows.slice(hdrIdx+1);
+            const result=[];
+            dataRows.forEach(row=>{
+              const r={};
+              hdr.forEach((h,i)=>{
+                if(!h) return;
+                const v=String(row[i]===null||row[i]===undefined?'':row[i]).trim();
+                r[h]=v;
+                // store underscore-stripped variant e.g. CutSize1_Inch → CutSize1Inch
+                const nu=h.replace(/_/g,'');
+                if(nu!==h) r[nu]=v;
+                // store space-stripped lowercase variant for fg() fuzzy match
+                const nl=h.replace(/[\s_]+/g,'').toLowerCase();
+                r['__'+nl]=v;
+              });
+              if(Object.values(r).some(v=>v!=='')) result.push(r);
+            });
+            cb(result);
+          }catch(err2){toast('❌ '+err2.message);}
+        },100);
+      }catch(err){toast('❌ '+err.message);}
+    },100);
+  };
+  reader.readAsArrayBuffer(f);
+}
+
+function checkReady(){const r=trackJobs.length>0;const b=document.getElementById('genBtn');b.disabled=!r;b.style.opacity=r?'1':'.5';}
+
+function parseDate(v){
+  if(!v||v==='')return'';
+  const m1=String(v).match(/(\d{1,2})\s+(\w{3})\s+(\d{4})/);
+  if(m1){const mo={Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12}[m1[2]];if(mo)return m1[3]+'-'+String(mo).padStart(2,'0')+'-'+m1[1].padStart(2,'0');}
+  if(/^\d{4}-\d{2}-\d{2}/.test(v))return v.slice(0,10);
+  const m2=String(v).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m2)return m2[3]+'-'+m2[2].padStart(2,'0')+'-'+m2[1].padStart(2,'0');
+  return'';
+}
+function toLocalKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function isHoliday(dk){return holidays.has(dk);}
+function addWorkDay(dk){
+  if(!dk)return dk;
+  let d=new Date(dk+'T12:00:00');
+  d.setDate(d.getDate()+1);
+  while(d.getDay()===0||isHoliday(toLocalKey(d)))d.setDate(d.getDate()+1);
+  return toLocalKey(d);
+}
+function dayKeyToWM(dk){
+  if(!dk)return 0;let d=new Date(dk+'T12:00:00');if(isNaN(d))return 0;
+  while(d.getDay()===0||isHoliday(toLocalKey(d)))d.setDate(d.getDate()+1);
+  let base=new Date(BASE);base.setHours(12,0,0,0);while(base.getDay()===0||isHoliday(toLocalKey(base)))base.setDate(base.getDate()+1);
+  if(d<=base)return 0;let w=0,cur=new Date(base);
+  while(toLocalKey(cur)<toLocalKey(d)){cur.setDate(cur.getDate()+1);if(cur.getDay()!==0&&!isHoliday(toLocalKey(cur)))w++;}
+  return w*DAY_WORK;
+}
+function dayKeyToWMStrict(dk){
+  if(!dk) return DAY_WORK;
+  let d=new Date(dk+'T12:00:00'); if(isNaN(d)) return DAY_WORK;
+  while(d.getDay()===0||isHoliday(toLocalKey(d))) d.setDate(d.getDate()+1);
+  let base=new Date(BASE); base.setHours(12,0,0,0);
+  while(base.getDay()===0||isHoliday(toLocalKey(base))) base.setDate(base.getDate()+1);
+  let w=0,cur=new Date(base);
+  while(toLocalKey(cur)<toLocalKey(d)){ cur.setDate(cur.getDate()+1); if(cur.getDay()!==0&&!isHoliday(toLocalKey(cur))) w++; }
+  return Math.max(w,1)*DAY_WORK;
+}
+const SEGS=[{ws:0,we:390,wall:420,nd:false},{ws:390,we:690,wall:840,nd:false},{ws:690,we:840,wall:1170,nd:false},{ws:840,we:930,wall:1350,nd:false},{ws:930,we:1320,wall:0,nd:true}];
+function wmToInfo(wm){
+  if(wm<0)wm=0;const di=Math.floor(wm/DAY_WORK),mid=wm%DAY_WORK;
+  let d=new Date(BASE);d.setHours(12,0,0,0);while(d.getDay()===0||isHoliday(toLocalKey(d)))d.setDate(d.getDate()+1);
+  for(let c=0;c<di;){d.setDate(d.getDate()+1);if(d.getDay()!==0&&!isHoliday(toLocalKey(d)))c++;}
+  let seg=SEGS[SEGS.length-1];for(let i=0;i<SEGS.length;i++){if(mid>=SEGS[i].ws&&mid<SEGS[i].we){seg=SEGS[i];break;}}
+  const wm2=(seg.wall+(mid-seg.ws))%1440;
+  let cal=new Date(d);if(seg.nd){cal.setDate(cal.getDate()+1);if(cal.getDay()===0||isHoliday(toLocalKey(cal)))cal.setDate(cal.getDate()+1);}
+  const h24=Math.floor(wm2/60)%24,mm=wm2%60,p=h24<12?'AM':'PM',h12=h24%12||12;
+  return{timeStr:String(h12).padStart(2,'0')+':'+String(mm).padStart(2,'0')+' '+p,
+    dateStr:cal.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}),
+    dayKey:toLocalKey(cal),shift:(seg.nd||seg.ws>=690)?'Shift 2':'Shift 1'};
+}
+
+// ---- HOLIDAY MANAGER ----
+var holidayList=[]; // [{date:'YYYY-MM-DD', name:'...'}]
+
+function addHoliday(){
+  const d=document.getElementById('holidayDateIn').value;
+  const n=document.getElementById('holidayNameIn').value.trim()||'Holiday';
+  if(!d){toast('⚠️ Date निवडा!');return;}
+  if(holidayList.find(h=>h.date===d)){toast('⚠️ ही date आधीच add आहे!');return;}
+  holidayList.push({date:d,name:n});
+  holidayList.sort((a,b)=>a.date.localeCompare(b.date));
+  holidays=new Set(holidayList.map(h=>h.date));
+  document.getElementById('holidayDateIn').value='';
+  document.getElementById('holidayNameIn').value='';
+  renderHolidayTags();
+  toast('🎉 Holiday added: '+n);
+}
+
+function removeHoliday(date){
+  holidayList=holidayList.filter(h=>h.date!==date);
+  holidays=new Set(holidayList.map(h=>h.date));
+  renderHolidayTags();
+}
+
+function renderHolidayTags(){
+  const cont=document.getElementById('holidayList');
+  if(!holidayList.length){cont.innerHTML='<span style="font-size:11px;color:#B45309;font-style:italic;">No holidays added yet</span>';return;}
+  cont.innerHTML=holidayList.map(h=>{
+    const dl=new Date(h.date+'T12:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+    return`<span style="display:inline-flex;align-items:center;gap:6px;background:#FEF3C7;border:1px solid #FCD34D;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;color:#92400E;">
+      🎉 ${h.name} <span style="font-weight:400;color:#B45309;">(${dl})</span>
+      <span onclick="removeHoliday('${h.date}')" style="cursor:pointer;color:#EF4444;font-size:13px;font-weight:900;line-height:1;" title="Remove">×</span>
+    </span>`;
+  }).join('');
+}
+
+// init
+renderHolidayTags();
+
+// ---- END HOLIDAY MANAGER ----
+
+
+let punchSchedJobs = []; // {jcno, name, cust, qty, cutSh, dim, itemType, unit, nextProcess, prodDate, endDate, endDateKey, pasteReadyKey}
+
+function onPunchSchedFile(inp){ if(inp.files[0]) handlePunchSchedFile(inp.files[0]); }
+
+function handlePunchSchedFile(f){
+  document.getElementById('punchSchedFname').textContent = '📄 ' + f.name;
+  toast('⏳ Punching Schedule load होत आहे...');
+  const reader = new FileReader();
+  reader.onload = e => {
+    setTimeout(() => {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array',raw:false,bookVBA:false,bookFiles:false,bookProps:false});
+        const shName = wb.SheetNames.find(n => /punch/i.test(n)) || wb.SheetNames[0];
+        const ws = wb.Sheets[shName];
+        if(!ws || !ws['!ref']){ toast('❌ Sheet सापडली नाही!'); return; }
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        if(range.e.c > 120) range.e.c = 120;
+        const allRows = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false, header:1, range: XLSX.utils.encode_range(range)});
+
+        punchSchedJobs = [];
+        let currentDate = '';
+        let currentUnit = '';
+        let headers = [];
+        let hdrSet = false;
+
+        function extractDate(str){
+          const m = String(str||'').match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
+          if(!m) return '';
+          const mo = {JANUARY:1,FEBRUARY:2,MARCH:3,APRIL:4,MAY:5,JUNE:6,JULY:7,AUGUST:8,SEPTEMBER:9,OCTOBER:10,NOVEMBER:11,DECEMBER:12,JAN:1,FEB:2,MAR:3,APR:4,JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12}[(m[2]||'').toUpperCase()];
+          if(!mo) return '';
+          return m[3] + '-' + String(mo).padStart(2,'0') + '-' + m[1].padStart(2,'0');
+        }
+
+        for(let i = 0; i < allRows.length; i++){
+          const row = allRows[i];
+          const c0 = String(row[0]||'').trim();
+
+          // Date header
+          const dk = extractDate(c0);
+          if(dk){ currentDate = dk; hdrSet = false; headers = []; currentUnit = ''; continue; }
+
+          // Unit
+          if(/unit\s*12/i.test(c0)||/B1/i.test(c0)){ currentUnit='Unit 12'; hdrSet=false; headers=[]; continue; }
+          if(/unit\s*19/i.test(c0)||/B2/i.test(c0)){ currentUnit='Unit 19'; hdrSet=false; headers=[]; continue; }
+
+          // Header row
+          if(!hdrSet && row.some(c => String(c||'').trim()==='Doc ID' || String(c||'').trim()==='Sr')){
+            headers = row.map(c => String(c===null||c===undefined?'':c).replace(/[\r\n\t]+/g,' ').replace(/\s{2,}/g,' ').trim());
+            hdrSet = true; continue;
+          }
+
+          if(!hdrSet || !currentDate || !currentUnit) continue;
+
+          // Build row obj
+          const r = {};
+          headers.forEach((h,idx) => { if(h) r[h] = String(row[idx]===null||row[idx]===undefined?'':row[idx]).trim(); });
+
+          const docId = (r['Doc ID']||'').trim();
+          if(!docId || docId.length < 4) continue;
+          if(/total|grand|DAY TOTAL/i.test(docId)||/total|grand|DAY TOTAL/i.test(c0)) continue;
+
+          const qty    = parseFloat(r['Qty']||0)||0;
+          const cutSh  = parseFloat(r['Cut Sh']||0)||0;
+          if(!qty && !cutSh) continue;
+
+          // KEY: use End Date as punch completion date
+          const endDateRaw = r['End Date']||'';
+          const prodDateRaw = r['Prod Date']||'';
+          // End Date is the actual completion — use it; fallback to Prod Date, then schedDate
+          const endDateKey = parseDate(endDateRaw) || parseDate(prodDateRaw) || currentDate;
+          const pasteReadyKey = endDateKey ? addWorkDay(endDateKey) : '';
+
+          punchSchedJobs.push({
+            jcno: docId,
+            name: (r['Job Name']||'').trim(),
+            cust: (r['Customer']||'').trim(),
+            qty, cutSh,
+            dim: (r['Dimension']||'').trim(),
+            dieNo: (r['Die No.']||'').trim(),
+            itemType: (r['Item Type']||'').trim(),
+            unit: currentUnit,
+            nextProcess: (r['Next Process']||'').trim(),
+            prodDate: prodDateRaw,
+            endDate: endDateRaw,
+            endDateKey,
+            pasteReadyKey,
+            schedDate: currentDate,
+          });
+        }
+
+        // De-dup per jcno: keep LATEST endDateKey (multi-day jobs appear multiple times)
+        const seen = {};
+        punchSchedJobs.forEach(j => {
+          if(!seen[j.jcno] || j.endDateKey > seen[j.jcno].endDateKey) seen[j.jcno] = j;
+        });
+        punchSchedJobs = Object.values(seen);
+
+        toast('✅ Punching Schedule: ' + punchSchedJobs.length + ' jobs loaded!');
+        renderPunchSchedule();
+        if(pasteSched.length) buildSchedule();
+
+      } catch(err){ toast('❌ Error: ' + err.message); console.error(err); }
+    }, 100);
+  };
+  reader.readAsArrayBuffer(f);
+}
+
+function renderPunchSchedule(){
+  document.getElementById('punchJobCount').textContent = punchSchedJobs.length + ' JOBS';
+  if(!punchSchedJobs.length){
+    document.getElementById('punchDayCards').innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted);">No jobs found</div>';
+    return;
+  }
+  // Group by schedDate (original day in punch plan)
+  const byDate = {};
+  punchSchedJobs.forEach(j => {
+    if(!byDate[j.schedDate]) byDate[j.schedDate] = [];
+    byDate[j.schedDate].push(j);
+  });
+  let html = '';
+  Object.keys(byDate).sort().forEach(dk => {
+    const jobs = byDate[dk];
+    const dl = new Date(dk+'T12:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}).toUpperCase();
+    const u12 = jobs.filter(j=>j.unit==='Unit 12');
+    const u19 = jobs.filter(j=>j.unit==='Unit 19');
+    const tQty = jobs.reduce((a,j)=>a+(j.qty||0),0);
+    const tCut = jobs.reduce((a,j)=>a+(j.cutSh||0),0);
+
+    function unitBlock(uJobs, label, col, bg){
+      if(!uJobs.length) return '';
+      return `<div style="flex:1;min-width:0;padding:12px 16px;border-right:1px solid var(--border);">
+        <div style="display:inline-block;font-size:9px;font-weight:800;letter-spacing:1.2px;padding:3px 10px;border-radius:20px;margin-bottom:10px;text-transform:uppercase;background:${bg};color:${col};">${label}</div>
+        ${uJobs.map(j => {
+          const hasPaste = !isExcludedFromPaste(j.itemType);
+          return `<div style="background:${hasPaste?'#F0FDF4':'#F8F6FF'};border:1px solid ${hasPaste?'#86EFAC':'var(--border)'};border-left:4px solid ${hasPaste?'#16A34A':'#3B82F6'};border-radius:8px;padding:9px 12px;margin-bottom:6px;">
+            <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:4px;">
+              <span style="font-size:11px;font-weight:800;color:#0F172A;">${j.jcno}</span>
+              ${hasPaste ? `<span style="font-size:9px;font-weight:700;background:#D1FAE5;color:#065F46;padding:2px 8px;border-radius:10px;">🍯 Pasting: ${j.pasteReadyKey||'—'}</span>` : ''}
+              ${j.itemType?`<span style="font-size:9px;background:#EDE9FE;color:#5B21B6;padding:2px 7px;border-radius:10px;">${j.itemType}</span>`:''}
+            </div>
+            <div style="font-size:11px;font-weight:600;color:#1E293B;margin-bottom:3px;">${j.name||''}</div>
+            <div style="font-size:10px;color:#64748B;margin-bottom:5px;">${j.cust||''}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <span style="background:#FEFCE8;border:1px solid #FDE68A;border-radius:6px;padding:3px 8px;font-family:'DM Mono',monospace;font-size:10px;color:#92400E;">${(j.qty||0).toLocaleString()} pcs</span>
+              <span style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:6px;padding:3px 8px;font-family:'DM Mono',monospace;font-size:10px;color:#0369A1;">${(j.cutSh||0).toLocaleString()} sh</span>
+              <span style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;padding:3px 8px;font-size:10px;color:#166534;font-weight:600;">End: ${j.endDate||j.schedDate}</span>
+              ${j.nextProcess?`<span style="background:#F1F5F9;border-radius:6px;padding:3px 8px;font-size:10px;color:#475569;">Next: ${j.nextProcess}</span>`:''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }
+
+    html += `<div class="day-block" style="margin-bottom:12px;">
+      <div class="day-hd">
+        <h3>📅 ${dl}</h3>
+        <span class="dmeta">Unit 12: ${u12.length} | Unit 19: ${u19.length} | Qty: ${tQty.toLocaleString()} | Cut: ${tCut.toLocaleString()}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;">
+        ${unitBlock(u12,'🔵 Unit 12 (B1)','#1E40AF','#DBEAFE')}
+        ${unitBlock(u19,'🟢 Unit 19 (B2)','#166534','#D1FAE5')}
+      </div>
+      <div style="background:#0D1B2A;border-top:2px solid #1A2B40;padding:9px 18px;display:flex;gap:20px;">
+        <span style="font-size:10px;font-weight:700;color:#64748b;">📊 DAY TOTAL</span>
+        <span style="font-family:'DM Mono',monospace;font-size:12px;color:#22c55e;font-weight:700;">Qty: ${tQty.toLocaleString()}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:12px;color:#a78bfa;">✂️ Cut: ${tCut.toLocaleString()}</span>
+        <span style="font-size:10px;color:#22c55e;font-weight:700;">🍯 Pasting ला: ${jobs.filter(j=>!isExcludedFromPaste(j.itemType)).length} jobs</span>
+      </div>
+    </div>`;
+  });
+  document.getElementById('punchDayCards').innerHTML = html;
+}
+
+function buildSchedule(){
+  const dtVal=document.getElementById('schedDate').value;
+  if(dtVal){BASE=new Date(dtVal+'T00:00:00');BASE.setHours(0,0,0,0);}
+  pasteSched=[];
+  const M={'Ambition':{wm:0,lastDim:null},'Expert':{wm:0,lastDim:null}};
+
+  function place(job,minWM){
+    const cut = (job.qty && job.qty > 0) ? job.qty : (job.cut||0); if(!cut)return;
+    const isBraille=!!(job.embossing&&job.embossing.trim()&&job.embossing.trim()!=='--');
+    let mName;
+    if(job.forceMach&&M[job.forceMach])mName=job.forceMach;
+    else if(isBraille)mName='Expert';
+    else{
+      const aWM=Math.max(M['Ambition'].wm,minWM);
+      const exWM=Math.max(M['Expert'].wm,minWM);
+      const OVERFLOW=120; // Expert ला जाण्यासाठी Ambition किती min ahead असावा
+      const sameDimAmb=!!(job.dim&&job.dim.trim()&&M['Ambition'].lastDim===job.dim.trim());
+      const sameDimExp=!!(job.dim&&job.dim.trim()&&M['Expert'].lastDim===job.dim.trim());
+      if(sameDimAmb && !sameDimExp){
+        // Same dim on Ambition → stay there (MR cost saved)
+        mName='Ambition';
+      } else if(sameDimExp && !sameDimAmb && exWM<aWM){
+        // Same dim on Expert AND Expert is earlier → go Expert
+        mName='Expert';
+      } else if(aWM <= exWM + OVERFLOW){
+        // Ambition is preferred unless Expert is more than OVERFLOW min ahead
+        mName='Ambition';
+      } else {
+        mName='Expert';
+      }
+    }
+    const m=M[mName];
+    const startWM=Math.max(m.wm,minWM);
+    const sameDim  = !!(job.dim&&job.dim.trim()&&m.lastDim===job.dim.trim());
+    const{speed,mr}=getPasteParams(job.itemType||'');
+    // Same Dimension → 10 min | New → item type specific MR
+    const mrMins = sameDim ? 10 : mr;
+    const mrLabel= sameDim ? 'Same Dim (10 min)' : `New Type (${mr} min)`;
+    const proc=Math.round(cut/speed),prodWM=startWM+mrMins,eWM=prodWM+proc;
+    const mrI=wmToInfo(startWM),psI=wmToInfo(prodWM),eI=wmToInfo(eWM);
+    m.wm=eWM; m.lastDim=job.dim?job.dim.trim():m.lastDim;
+    const ck=(job.code||'').toLowerCase().replace(/\s+/g,'');
+    const bi=breilMap[ck]||Object.entries(breilMap).find(([k])=>k.replace(/\s+/g,'')===ck)?.[1]||{};
+    pasteSched.push({sr:pasteSched.length+1,...job,mach:mName,mrLabel,mrMins,proc,
+      prodWM, eWM,
+      mrTime:mrI.timeStr,mrDate:mrI.dateStr,mrKey:mrI.dayKey,mrShift:mrI.shift,
+      psTime:psI.timeStr,psDate:psI.dateStr,psKey:psI.dayKey,psShift:psI.shift,
+      eTime:eI.timeStr,eDate:eI.dateStr,eKey:eI.dayKey,eShift:eI.shift,
+      sKey:mrI.dayKey,line:bi.line||'',toolLine:bi.toolLine||'',isBraille});
+  }
+
+  const bk=toLocalKey(BASE);
+
+  // ── punchEndMap: jcno → latest endDateKey entry (End Date based) ──
+  // RULE: if job is in punch schedule → pasting cannot start before End Date + next working day
+  const punchEndMap={};
+  punchSchedJobs.forEach(j=>{
+    if(!j.endDateKey) return;
+    const ex=punchEndMap[j.jcno];
+    if(!ex || j.endDateKey > ex.endDateKey) punchEndMap[j.jcno]=j;
+  });
+
+  // ── Track Record jobs ──
+  // जर job punchEndMap मध्ये आहे → Punch End Date + next working day = pasting start
+  // Track Record मधून सर्व details, Punching Schedule मधून फक्त End Date
+  // ── Track jobs 3 गटांमध्ये divide करा ──
+  // Group 1: PASTING(R) → लगेच TOP ला, minWM=0
+  // Group 2: Next Process = Pasting → Punch End Date + next day (जर punchEndMap मध्ये असेल)
+  // Group 3: बाकी (punching बाकी) → Punch End Date + next day
+
+  const grp1=[],grp2=[],grp3=[];
+  trackJobs.forEach(j=>{
+    const js=(j.jobStatus||'').toUpperCase();
+    const np=(j.nextProcess||'').toLowerCase();
+    if(js==='PASTING(R)') grp1.push(j);
+    else if(np==='pasting'||np.includes('past')) grp2.push(j);
+    else grp3.push(j);
+  });
+
+  // Sort within each group by dim (same dim एकत्र)
+  const dimSort=(a,b)=>(a.dim||'').localeCompare(b.dim||'')||(a.jcno||'').localeCompare(b.jcno||'');
+
+  // Group 1: PASTING(R) → minWM=0, no punch block
+  grp1.sort(dimSort).forEach(j=>{ place(j,0); });
+
+  // Group 2: Next Process = Pasting → Punch End Date + next day नुसार sort करा
+  grp2.sort((a,b)=>{
+    const pa=punchEndMap[a.jcno]?.pasteReadyKey||'';
+    const pb=punchEndMap[b.jcno]?.pasteReadyKey||'';
+    return pa.localeCompare(pb)||dimSort(a,b);
+  }).forEach(j=>{
+    const pe=punchEndMap[j.jcno];
+    let minWM=0;
+    if(pe){
+      minWM=dayKeyToWMStrict(pe.pasteReadyKey);
+      j._punchEndDate=pe.endDate; // display info only
+      j._punchUnit=pe.unit;
+      // Track Record jobStatus/nextProcess as-is राहतात — फक्त start date shift होतो
+    }
+    place(j,minWM);
+  });
+
+  // Group 3: बाकी (punching बाकी) → Punch End Date + next day नुसार sort
+  grp3.sort((a,b)=>{
+    const pa=punchEndMap[a.jcno]?.pasteReadyKey||'';
+    const pb=punchEndMap[b.jcno]?.pasteReadyKey||'';
+    return pa.localeCompare(pb)||dimSort(a,b);
+  }).forEach(j=>{
+    const pe=punchEndMap[j.jcno];
+    let minWM=0;
+    if(pe){
+      minWM=dayKeyToWMStrict(pe.pasteReadyKey);
+      j._punchEndDate=pe.endDate;
+      j._punchUnit=pe.unit;
+      // Track Record jobStatus/nextProcess as-is राहतात
+    }
+    place(j,minWM);
+  });
+
+  // Manual jobs
+  manualJobs.forEach(j=>place(j,dayKeyToWM(j.readyKey||bk)));
+
+  // ── Punch jobs NOT in Track Record → add directly to pasting ──
+  const trackJcnos=new Set(trackJobs.map(j=>j.jcno));
+  Object.values(punchEndMap)
+    .filter(j=>!trackJcnos.has(j.jcno)&&!isExcludedFromPaste(j.itemType)&&j.pasteReadyKey)
+    .sort((a,b)=>a.pasteReadyKey.localeCompare(b.pasteReadyKey)||(a.dim||'').localeCompare(b.dim||''))
+    .forEach(j=>{
+      const enriched=trackMap[j.jcno]||{};
+      place({
+        jcno:j.jcno, name:j.name, cust:j.cust,
+        qty:j.qty, cut:j.cutSh||j.qty, totalCutSh:j.cutSh||0,
+        itemType:j.itemType, dim:j.dim, code:'', embossing:'',
+        cutSize1:enriched.cutSize1||'', gsm:enriched.gsm||0,
+        jobStatus:trackMap[j.jcno]?.jobStatus||'', nextProcess:trackMap[j.jcno]?.nextProcess||'',
+        planType:'FROM-PUNCH', status:'',
+        readyKey:j.pasteReadyKey, _punchEndDate:j.endDate, _punchUnit:j.unit,
+      }, dayKeyToWMStrict(j.pasteReadyKey));
+    });
+
+  renderSchedule();goPg(2);
+  const fp=pasteSched.filter(j=>j.planType==='FROM-PUNCH').length;
+  toast('✅ Pasting: '+pasteSched.length+' jobs'+(fp?' ('+fp+' from Punch)':'')+'!');
+}
+
+function renderSchedule(){
+  const amb=pasteSched.filter(j=>j.mach==='Ambition'),exp=pasteSched.filter(j=>j.mach==='Expert');
+  document.getElementById('kpiGrid').innerHTML=`
+    <div class="kpi"><div class="kpi-val">${pasteSched.length}</div><div class="kpi-lbl">Total Jobs</div></div>
+    <div class="kpi k-green"><div class="kpi-val">${amb.length}</div><div class="kpi-lbl">Ambition</div></div>
+    <div class="kpi k-orange"><div class="kpi-val">${exp.length}</div><div class="kpi-lbl">Expert</div></div>
+    <div class="kpi k-amber"><div class="kpi-val">${pasteSched.reduce((a,j)=>a+(j.qty||0),0).toLocaleString()}</div><div class="kpi-lbl">Total Qty</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:#7C3AED;">${pasteSched.filter(j=>j.isBraille).length}</div><div class="kpi-lbl">Braille Jobs</div></div>
+    <div class="kpi k-green"><div class="kpi-val" style="font-size:15px;">${pasteSched.reduce((a,j)=>a+calcKg(j),0).toLocaleString('en-IN',{maximumFractionDigits:1})} kg</div><div class="kpi-lbl">Total Weight</div></div>
+    ${pasteSched.filter(j=>j.planType==='FROM-PUNCH').length?'<div class="kpi k-green"><div class="kpi-val" style="color:#16A34A;">'+pasteSched.filter(j=>j.planType==='FROM-PUNCH').length+'</div><div class="kpi-lbl">From Punch</div></div>':''}`;
+  renderDayCards();renderTable();
+}
+
+function renderDayCards(){
+  let ks=new Set();
+  pasteSched.forEach(j=>{if(j.sKey)ks.add(j.sKey);if(j.eKey)ks.add(j.eKey);
+    if(j.sKey&&j.eKey&&j.sKey!==j.eKey){let d=new Date(j.sKey+'T12:00:00'),e=new Date(j.eKey+'T12:00:00');while(d<e){d.setDate(d.getDate()+1);if(d.getDay()!==0)ks.add(toLocalKey(d));}}
+  });
+  // Coming Soon jobs — show on their punch date day
+  punchJobs.filter(j=>j.isComingSoon&&j.readyKey).forEach(j=>ks.add(j.readyKey));
+  let html='';
+  [...ks].sort().forEach(key=>{
+    const dj=pasteSched.filter(j=>j.sKey===key),ip=pasteSched.filter(j=>j.sKey<key&&j.eKey>=key);
+    if(!dj.length&&!ip.length)return;
+    const aS=dj.filter(j=>j.mach==='Ambition').sort((a,b)=>a.sr-b.sr);
+    const eS=dj.filter(j=>j.mach==='Expert').sort((a,b)=>a.sr-b.sr);
+    const aI=ip.filter(j=>j.mach==='Ambition').sort((a,b)=>a.sr-b.sr);
+    const eI=ip.filter(j=>j.mach==='Expert').sort((a,b)=>a.sr-b.sr);
+    const dl=new Date(key+'T12:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+    const all=[...dj,...ip];
+    const holidayInfo=holidayList.find(h=>h.date===key);
+    const bdBreak=bdState.breaks.find(b=>b.dateKey===key);
+
+    // Coming Soon jobs for this day (punch date = this day → next day pasting)
+    const csJobs=punchJobs.filter(j=>j.isComingSoon && addWorkDay(j.readyKey||'')=== key);
+
+    let csHtml='';
+    if(csJobs.length){
+      csHtml=`<div style="margin:0 16px 12px;border-top:1px dashed #f97316;padding-top:10px;">
+        <div style="font-size:10px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:8px;">🔜 COMING SOON — PUNCHING PIPELINE</div>
+        ${csJobs.map(j=>`
+        <div style="background:#1a1a2e;border:1px solid #2a2a4a;border-left:3px solid #f97316;border-radius:8px;padding:9px 12px;margin-bottom:7px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+            <span style="font-weight:800;color:#f97316;font-size:13px;">${j.jcno}</span>
+            <span style="font-size:11px;background:#1e3a5f;color:#60a5fa;padding:2px 7px;border-radius:10px;">${j.itemType||'—'}</span>
+            <span style="font-size:9px;background:#2d1b00;color:#fb923c;padding:2px 7px;border-radius:10px;">✂️ Punch: ${j.readyKey||'—'}</span>
+            <span style="font-size:9px;background:#0d1f0d;color:#22c55e;padding:2px 7px;border-radius:10px;">🍯 Paste Start: ${addWorkDay(j.readyKey||'')}</span>
+          </div>
+          <div style="font-size:11px;color:#cbd5e1;">${j.name||''}</div>
+          <div style="font-size:10px;color:#64748b;margin-top:2px;">${j.cust||''} &nbsp;|&nbsp; 📦 ${(j.qty||0).toLocaleString()} &nbsp;|&nbsp; ✂️ ${(j.cut||0).toLocaleString()} sh</div>
+        </div>`).join('')}
+      </div>`;
+    }
+    html+=`<div class="day-block">
+      <div class="day-hd"><h3>📅 ${dl}${bdBreak?` <span style="background:#dc2626;color:#fff;font-size:10px;font-weight:700;padding:2px 10px;border-radius:10px;margin-left:6px;">⚠️ BREAKDOWN — ${bdBreak.mach}</span>`:''}${holidayInfo?` 🎉 <span style="background:#F97316;color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:700;">${holidayInfo.name} — HOLIDAY</span>`:''}</h3><span class="dmeta">Starting: ${dj.length} | In Progress: ${ip.length}</span></div>
+      <div class="shift-bar"><span>⏰ Shift 1: 07:00 AM – 07:00 PM &nbsp;|&nbsp; Lunch: 01:30 PM – 02:00 PM &nbsp;|&nbsp; Shift Change: 07:00 PM – 07:30 PM &nbsp;&nbsp; 🌙 Shift 2: 07:30 PM – 07:00 AM &nbsp;|&nbsp; Dinner: 10:00 PM – 10:30 PM &nbsp;|&nbsp; Shift Change: 07:00 AM – 07:30 AM</span></div>
+      <div class="mach-row">
+        <div class="mach-col"><span class="mach-lbl ml-amb">🔵 Ambition</span>
+          ${aI.map(j=>jCard(j,true,key)).join('')}${aS.map(j=>jCard(j,false,key)).join('')}
+          ${(!aS.length&&!aI.length)?'<div class="idle">No jobs</div>':''}
+        </div>
+        <div class="mach-col"><span class="mach-lbl ml-exp">🟣 Expert</span>
+          ${eI.map(j=>jCard(j,true,key)).join('')}${eS.map(j=>jCard(j,false,key)).join('')}
+          ${(!eS.length&&!eI.length)?'<div class="idle">No jobs</div>':''}
+        </div>
+      </div>
+      <div style="background:#0D1B2A;border-top:2px solid #1A2B40;padding:10px 18px;display:flex;gap:24px;">
+        <span style="font-size:10px;font-weight:700;color:#64748b;letter-spacing:1px;">📊 DAY TOTAL</span>
+        <span style="font-family:'DM Mono',monospace;font-size:13px;color:#22c55e;font-weight:700;">Qty: ${all.reduce((a,j)=>a+(j.qty||0),0).toLocaleString()}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:12px;color:#a78bfa;font-weight:700;">⚖️ ${all.reduce((a,j)=>a+calcKg(j),0).toLocaleString('en-IN',{maximumFractionDigits:1})} kg</span>
+        <span style="font-size:10px;color:#475569;">Ambition: ${[...aS,...aI].length} | Expert: ${[...eS,...eI].length}</span>
+      </div>
+      ${csHtml}
+    </div>`;
+  });
+  document.getElementById('dayCards').innerHTML=html||'<p style="color:var(--muted);text-align:center;padding:40px;">No schedule data</p>';
+}
+
+function getDayQty(j, dayKey){
+  if(!j.prodWM || !j.eWM || j.sKey===j.eKey) return null;
+  const speed = getPasteParams(j.itemType||'').speed;
+  // dayIdx = number of working days from BASE to dayKey
+  let d = new Date(BASE); d.setHours(12,0,0,0);
+  while(d.getDay()===0) d.setDate(d.getDate()+1);
+  let dayIdx = 0;
+  while(toLocalKey(d) < dayKey){
+    d.setDate(d.getDate()+1);
+    if(d.getDay()!==0) dayIdx++;
+  }
+  const dayStart  = dayIdx * DAY_WORK;
+  const dayEnd    = (dayIdx+1) * DAY_WORK;
+  const workStart = Math.max(j.prodWM, dayStart);
+  const workEnd   = Math.min(j.eWM,   dayEnd);
+  if(workEnd <= workStart) return null;
+  return Math.round((workEnd - workStart) * speed);
+}
+
+function jCard(j,isIP,dayKey){
+  const isAmb=j.mach==='Ambition';
+  const isCS=j.planType==='Coming Soon';
+  const isMulti=j.sKey!==j.eKey;
+  const isBD=!!j._bdShifted;
+  const isFP=j.planType==='FROM-PUNCH'; // pure punch-only jobs
+  const hasPunchDate=!!j._punchEndDate;   // track record job scheduled by punch end date
+  const bg=isBD?'rgba(239,68,68,0.08)':(isIP?'#FFF8F4':(j.isBraille?'#F3E8FF':(isCS?'rgba(249,115,22,0.06)':(isFP?'#F0FDF4':(isAmb?'#EFF6FF':'#F5F2FF')))));
+  const bc=isBD?'#ef4444':(j.isBraille?'#7C3AED':(isCS?'#f97316':(isFP?'#16A34A':(isAmb?'#3B82F6':'#8B5CF6'))));
+  const planColor=isCS?'#f97316':(j.planType==='FROM-PUNCH'?'#065F46':'#92400E');
+  const planBg=isCS?'rgba(249,115,22,0.15)':(j.planType==='FROM-PUNCH'?'#D1FAE5':'#FEF3C7');
+  // Day qty for multi-day jobs
+  const dayQty = (isMulti && dayKey) ? getDayQty(j, dayKey) : null;
+  const dayQtyHtml = dayQty ? `<span style="background:#FFF0E6;color:#C2410C;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;">✅ Today: ${dayQty.toLocaleString()} pcs</span>` : '';
+  return`<div class="jcard ${isIP?'is-ip':''}" style="border-left-color:${bc};background:${bg};">
+    <div class="jname">
+      ${isBD?'<span style="color:#ef4444;font-size:10px;">⚠️ BD OVERFLOW &nbsp;</span>':''}
+      ${j.isBraille?'<span style="color:#7C3AED;font-size:10px;">✏️ BRAILLE &nbsp;</span>':''}
+      ${isCS?'<span style="color:#f97316;font-size:10px;">🔜 COMING SOON &nbsp;</span>':''}
+      ${isFP?'<span style="color:#16A34A;font-size:10px;">🔨 FROM PUNCH'+(j._punchUnit?' ('+j._punchUnit+')':'')+' &nbsp;</span>':''}
+      ${(!isFP&&hasPunchDate)?'<span style="color:#0369A1;font-size:10px;">📅 Punch End: '+j._punchEndDate+' &nbsp;</span>':''}
+      ${isMulti?'<span style="color:#C2410C;font-size:10px;">📅 MULTI-DAY &nbsp;</span>':''}
+      ${j.name||j.jcno}
+    </div>
+    <div class="jmeta">
+      <span>📋 ${j.jcno}</span><span>📦 ${(j.qty||0).toLocaleString()}</span>
+      ${j.itemType?`<span>🏷️ ${j.itemType}</span>`:''}
+      ${j.cutSize1?`<span style="color:#0369A1;font-weight:600;">📐 ${j.cutSize1}</span>`:''}
+      ${calcKg(j)>0?`<span style="color:#16A34A;font-weight:700;">⚖️ ${calcKg(j).toLocaleString('en-IN',{maximumFractionDigits:1})} kg</span>`:''}
+      ${j.line?`<span style="color:#7C3AED;font-weight:600;">📏 Line: ${j.line}</span>`:''}
+      ${isFP
+        ? '<span style="background:#D1FAE5;color:#065F46;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;">🔨 FROM PUNCH</span>'
+        : (j.jobStatus
+            ? '<span style="background:#FEF3C7;color:#92400E;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;">'+j.jobStatus+'</span>'
+              +(j.nextProcess ? ' <span style="background:#D1FAE5;color:#065F46;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;">→ '+j.nextProcess+'</span>' : '')
+            : ''
+          )
+      }
+      ${isIP?'<span style="background:#FFF7ED;color:#c2410c;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;">IN PROGRESS</span>':''}
+      ${dayQtyHtml}
+    </div>
+    <div class="jtimes">
+      <div class="jt-box jt-mr"><div class="jt-lbl">MR Start</div><div class="jt-time">${j.mrTime}</div><div class="jt-date">${j.mrDate}</div></div>
+      <div class="jt-box jt-ps"><div class="jt-lbl">Paste Start</div><div class="jt-time">${j.psTime}</div><div class="jt-date">${j.psDate}</div></div>
+      <div class="jt-box jt-ec"><div class="jt-lbl">Complete</div><div class="jt-time">${j.eTime}</div><div class="jt-date">${j.eDate}</div></div>
+    </div>
+  </div>`;
+}
+
+function renderTable(){
+  document.getElementById('tblCount').textContent=pasteSched.length+' JOBS';
+  document.getElementById('tblBody').innerHTML=pasteSched.map((j,i)=>{
+    const isMulti=j.sKey!==j.eKey;
+    const remarks=isMulti?'Multi-Day':'Single Day';
+    const rowCls=j.isBraille?'breil-row':isMulti?'ip-row':(j.mach==='Ambition'?'amb-row':'exp-row');
+    return '<tr class="'+rowCls+'">'
+      +'<td>'+(i+1)+'</td><td><b>'+j.jcno+'</b></td>'
+      +'<td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;">'+(j.cust||'')+'</td>'
+      +'<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;">'+(j.name||'')+'</td>'
+      +'<td>'+((j.qty||0).toLocaleString())+'</td>'
+      +'<td>'+(j.itemType||'')+'</td>'
+      +'<td style="font-size:10px;color:#64748b;">'+(j.dim||'')+'</td>'
+      +'<td><span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;background:#FEF3C7;color:#92400E;">'+(j.jobStatus||'')+'</span></td>'
+      +'<td><span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;background:#D1FAE5;color:#065F46;">'+(j.nextProcess||'—')+'</span></td>'
+      +'<td>'+(j.code||'')+'</td><td>'+(j.embossing||'')+'</td>'
+      +'<td style="color:#7C3AED;font-weight:600;">'+(j.line||'')+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:10px;">'+(j.cutSize1||'—')+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;text-align:right;">'+(j.gsm||'—')+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;text-align:right;color:#1E40AF;font-weight:600;">'+(j.totalCutSh>0?j.totalCutSh.toLocaleString():'—')+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-weight:700;color:#16A34A;text-align:right;">'+(calcKg(j)>0?calcKg(j).toLocaleString('en-IN',{maximumFractionDigits:2})+' kg':'—')+'</td>'
+      +'<td><span class="pill '+(j.mach==='Ambition'?'p-amb':'p-exp')+'">'+j.mach+'</span></td>'
+      +'<td style="font-size:10px;">'+j.mrLabel+'</td>'
+      +'<td><b style="color:#92400E;">'+j.mrTime+'</b></td><td>'+j.mrDate+'</td>'
+      +'<td><b style="color:#5B21B6;">'+j.psTime+'</b></td><td>'+j.psDate+'</td>'
+      +'<td><b style="color:#166534;">'+j.eTime+'</b></td><td>'+j.eDate+'</td>'
+      +'<td><span class="pill '+(j.planType==='Coming Soon'?'p-paste':'p-punch')+'">'+j.planType+'</span></td>'
+      +'<td><span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;background:'+(isMulti?'#FED7AA':'#D1FAE5')+';color:'+(isMulti?'#C2410C':'#065F46')+';"> '+(remarks)+'</span></td>'
+      +'</tr>';
+  }).join('');
+}
+
+function switchTab(t){
+  document.getElementById('dayView').classList.toggle('hidden',t!=='day');
+  document.getElementById('tblView').classList.toggle('hidden',t!=='tbl');
+  document.getElementById('punchView').classList.toggle('hidden',t!=='punch');
+  document.getElementById('tabDay').classList.toggle('on',t==='day');
+  document.getElementById('tabTbl').classList.toggle('on',t==='tbl');
+  document.getElementById('tabPunch').classList.toggle('on',t==='punch');
+}
+
+function goPg(n){
+  document.getElementById('pg1').classList.toggle('hidden',n!==1);
+  document.getElementById('pg2').classList.toggle('hidden',n!==2);
+  ['si1','si2'].forEach((id,i)=>{const el=document.getElementById(id);el.classList.remove('active','done');if(i+1<n)el.classList.add('done');else if(i+1===n)el.classList.add('active');});
+  document.getElementById('sl1').classList.toggle('done',n>1);
+}
+
+function openManualModal(){document.getElementById('manualModal').classList.add('on');}
+function closeManual(){document.getElementById('manualModal').classList.remove('on');}
+function addManualJob(){
+  const name=document.getElementById('mj_name').value.trim(),jcno=document.getElementById('mj_jcno').value.trim();
+  const cust=document.getElementById('mj_cust').value.trim(),qty=parseFloat(document.getElementById('mj_qty').value)||0;
+  const cut=parseFloat(document.getElementById('mj_cut').value)||0,itype=document.getElementById('mj_itype').value;
+  const mach=document.getElementById('mj_mach').value,emb=document.getElementById('mj_emb').value.trim();
+  if(!name||!qty){toast('⚠️ Job Name aur Qty required!');return;}
+  closeManual();
+  manualJobs.push({jcno:jcno||'MANUAL-'+Date.now(),name,cust,qty,cut:cut||qty,itemType:itype,
+    code:'',embossing:emb,status:'MANUAL',planType:'Manual',readyKey:toLocalKey(BASE),
+    forceMach:mach!=='auto'?mach:null});
+  buildSchedule();toast('✅ Manual job added!');
+}
+
+// Daily progress for multi-day jobs
+function getDailyProgress(j){
+  if(j.sKey===j.eKey) return ''; // Single day — no need
+  const speed = getPasteParams(j.itemType||'').speed;
+  const prodWM = j.prodWM || 0;
+  const eWM    = j.eWM    || 0;
+  if(!prodWM || !eWM) return '';
+
+  const startDay = Math.floor(prodWM / DAY_WORK);
+  const endDay   = Math.floor(eWM   / DAY_WORK);
+  if(startDay === endDay) return '';
+
+  const parts = [];
+  for(let d = startDay; d <= endDay; d++){
+    const dayStart = d * DAY_WORK;
+    const dayEnd   = (d+1) * DAY_WORK;
+    const workStart = Math.max(prodWM, dayStart);
+    const workEnd   = Math.min(eWM,   dayEnd);
+    if(workEnd <= workStart) continue;
+    const mins = workEnd - workStart;
+    const qty  = Math.round(mins * speed);
+    const dateInfo = wmToInfo(dayStart + 1);
+    parts.push(`${dateInfo.dateStr}: ${qty.toLocaleString()} pcs`);
+  }
+  return parts.join('\n') + `\nTotal: ${j.qty.toLocaleString()} pcs`;
+}
+
+function dlExcel(){
+  if(!pasteSched.length){toast('⚠️ Schedule nahi hai!');return;}
+  const wbXL=XLSX.utils.book_new();
+  const NCols=27;
+  const CW=[4,13,20,32,8,16,12,14,14,10,16,10,9,7,10,10,10,16,10,11,9,10,11,10,11,12,12];
+  const HDR=['Sr','JCNO','Customer','Job Name','Pending Qty','Item Type','Dimension','Job Status','Next Process','Code','Embossing','Line','CutSize1 (in)','GSM','Tot. Cut Sh','Total KG','Machine','MR Type','MR Time','MR Date','MR Shift','Start Time','Start Date','End Time','End Date','Plan Type','Remarks'];
+
+  // Colors
+  const C={
+    title:  {bg:'1A3A6B',fc:'FFFFFF',bold:true,sz:14},
+    sub:    {bg:'0A1628',fc:'94A3B8',bold:false,sz:10},
+    dayHdr: {bg:'0A1628',fc:'FFFFFF',bold:true,sz:13},
+    ambHdr: {bg:'1E40AF',fc:'FFFFFF',bold:true,sz:11},
+    expHdr: {bg:'5B21B6',fc:'FFFFFF',bold:true,sz:11},
+    hdrAmb: {bg:'1E3A5F',fc:'CBD5E1',bold:true,sz:9},
+    hdrExp: {bg:'2D1B69',fc:'CBD5E1',bold:true,sz:9},
+    ambRow: {bg:'EFF6FF',fc:'1E293B',bold:false,sz:10},
+    expRow: {bg:'F5F3FF',fc:'1E293B',bold:false,sz:10},
+    breilRow:{bg:'FAF5FF',fc:'5B21B6',bold:false,sz:10},
+    csRow:  {bg:'FFF7ED',fc:'1E293B',bold:false,sz:10},
+    phRow:  {bg:'FFFBEB',fc:'92400E',bold:false,sz:10},
+    timeAmb:{bg:'EFF6FF',fc:'1E40AF',bold:true,sz:10},
+    timeExp:{bg:'F5F3FF',fc:'5B21B6',bold:true,sz:10},
+    breilTime:{bg:'FAF5FF',fc:'6D28D9',bold:true,sz:10},
+    total:  {bg:'1E293B',fc:'22C55E',bold:true,sz:11},
+  };
+
+  function cell(v,s){return{v,s};}
+  function pRow(cells,ht){return{cells,ht};}
+  function emptyR(){return pRow(Array(NCols).fill(0).map(()=>cell('',0)),6);}
+
+  const SM={};
+  let si=1;
+  Object.entries(C).forEach(([k,v])=>{SM[si]={bg:v.bg,fc:v.fc,bold:v.bold,sz:v.sz};C[k]=si++;});
+
+  const rows=[];
+  const ds=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
+  const d0=pasteSched[0]?.sKey||'',dN=pasteSched[pasteSched.length-1]?.eKey||'';
+  const rangeStr=(new Date(d0+'T12:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})+' – '+new Date(dN+'T12:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})).toUpperCase();
+
+  // Title rows
+  rows.push(pRow(Array(NCols).fill(0).map((_,i)=>cell(i===0?`AIA INDUSTRIES — PASTING SCHEDULE — ${rangeStr}`:'',C.title)),28));
+  rows.push(pRow(Array(NCols).fill(0).map((_,i)=>cell(i===0?`Total: ${pasteSched.length}  |  Ambition: ${pasteSched.filter(j=>j.mach==='Ambition').length}  |  Expert: ${pasteSched.filter(j=>j.mach==='Expert').length}  |  Total Qty: ${pasteSched.reduce((a,j)=>a+(j.qty||0),0).toLocaleString()}  |  Total Cut: ${pasteSched.reduce((a,j)=>a+(j.cut||0),0).toLocaleString()}`:'',C.sub)),14));
+  rows.push(emptyR());
+
+  // Days
+  let ks=new Set();
+  pasteSched.forEach(j=>{if(j.sKey)ks.add(j.sKey);if(j.eKey)ks.add(j.eKey);});
+  [...ks].sort().forEach(key=>{
+    const dj=pasteSched.filter(j=>j.sKey===key).sort((a,b)=>a.sr-b.sr);
+    const ip=pasteSched.filter(j=>j.sKey<key&&j.eKey>=key).sort((a,b)=>a.sr-b.sr);
+    if(!dj.length&&!ip.length)return;
+
+    const dl=new Date(key+'T12:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}).toUpperCase();
+    const allDay=[...dj,...ip];
+    rows.push(emptyR());
+    rows.push(pRow(Array(NCols).fill(0).map((_,i)=>cell(i===0?dl:'',C.dayHdr)),32));
+    rows.push(pRow(Array(NCols).fill(0).map((_,i)=>cell(i===0?`Ambition: ${allDay.filter(j=>j.mach==='Ambition').length} jobs  |  Expert: ${allDay.filter(j=>j.mach==='Expert').length} jobs  |  Total Qty: ${allDay.reduce((a,j)=>a+(j.qty||0),0).toLocaleString()}  |  Shift 1: 07:00 AM–07:00 PM  |  Lunch: 01:30 PM–02:00 PM  |  Shift 2: 07:30 PM–07:00 AM  |  Dinner: 10:00 PM–10:30 PM`:'',C.sub)),14));
+
+    ['Ambition','Expert'].forEach(mName=>{
+      const mj=[...ip.filter(j=>j.mach===mName),...dj.filter(j=>j.mach===mName)].sort((a,b)=>a.sr-b.sr);
+      if(!mj.length)return;
+      const isAmb=mName==='Ambition';
+      const mHdr=isAmb?C.ambHdr:C.expHdr;
+      const hdrS=isAmb?C.hdrAmb:C.hdrExp;
+      const rowS=isAmb?C.ambRow:C.expRow;
+      const timeS=isAmb?C.timeAmb:C.timeExp;
+
+      rows.push(pRow(Array(NCols).fill(0).map((_,i)=>cell(i===0?`  🔵 ${mName.toUpperCase()}`:'',mHdr)),18));
+      rows.push(pRow(HDR.map(h=>cell(h,hdrS)),24));
+
+      let sr=1;
+      mj.forEach(j=>{
+        const isCS=j.planType==='Coming Soon';
+        const isPH=j.planType==='PH';
+        const isMulti=j.sKey!==j.eKey;
+        const isBr=j.isBraille;
+        const rs=isBr?C.breilRow:isMulti?C.csRow:(isCS?C.csRow:(isPH?C.phRow:rowS));
+        const ts=isBr?C.breilTime:isMulti?C.csRow:(isCS?C.csRow:(isPH?C.phRow:timeS));
+        const dayKgInfo = isMulti ? calcKgForDay(j, key) : {sheets: j.totalCutSh||j.cut||0, kg: calcKg(j)};
+        const kgVal = isMulti ? (dayKgInfo.kg > 0 ? dayKgInfo.kg : '') : (calcKg(j)||0);
+        const rmkVal = isMulti
+          ? `Multi-Day (Today: ${dayKgInfo.sheets.toLocaleString()} sh, ${dayKgInfo.kg} kg | Total: ${(j.totalCutSh||j.cut||0).toLocaleString()} sh, ${calcKg(j)} kg)`
+          : 'Single Day';
+        const vals=[sr++,j.jcno,j.cust||'',j.name||'',j.qty||0,
+          j.itemType||'',j.dim||'',j.jobStatus||'',j.nextProcess||'',j.code||'',j.embossing||'',j.line||'',
+          j.cutSize1||'—',j.gsm||0,isMulti ? dayKgInfo.sheets : (j.totalCutSh||j.cut||0),kgVal,
+          j.mach,j.mrLabel||'',j.mrTime||'',j.mrDate||'',j.mrShift||'',
+          j.psTime||'',j.psDate||'',j.eTime||'',j.eDate||'',j.planType||'',rmkVal];
+        rows.push(pRow(vals.map((v,ci)=>cell(v,[18,21,23].includes(ci)?ts:rs)),15));
+      });
+
+      const tot=[...ip.filter(j=>j.mach===mName),...dj.filter(j=>j.mach===mName)];
+      rows.push(pRow(Array(NCols).fill(0).map((_,i)=>
+        i===3?cell(`${mName.toUpperCase()} TOTAL`,C.total):
+        i===4?cell(tot.reduce((a,j)=>a+(j.qty||0),0),C.total):
+        i===15?cell(Math.round(tot.reduce((a,j)=>a+calcKgForDay(j,key).kg,0)*100)/100,C.total):
+        i===NCols-1?cell(tot.length+' jobs',C.total):cell('',C.total)
+      ),16));
+    });
+
+    // Day Total
+    const dayAll=[...ip,...dj];
+    rows.push(pRow(Array(NCols).fill(0).map((_,i)=>
+      i===3?cell(`DAY TOTAL — ${dl.split('—')[0].trim()}`,C.total):
+      i===4?cell(dayAll.reduce((a,j)=>a+(j.qty||0),0),C.total):
+      i===15?cell(Math.round(dayAll.reduce((a,j)=>a+calcKgForDay(j,key).kg,0)*100)/100,C.total):
+      i===NCols-1?cell(dayAll.length+' jobs',C.total):cell('',C.total)
+    ),16));
+    rows.push(emptyR());
+  });
+
+  // Grand total
+  rows.push(pRow(Array(NCols).fill(0).map((_,i)=>
+    i===3?cell('GRAND TOTAL',C.total):
+    i===4?cell(pasteSched.reduce((a,j)=>a+(j.qty||0),0),C.total):
+    i===15?cell(Math.round(pasteSched.reduce((a,j)=>a+calcKg(j),0)*100)/100,C.total):
+    i===NCols-1?cell(pasteSched.length+' total jobs',C.total):cell('',C.total)
+  ),18));
+
+  // Build sheet
+  const aoa=rows.map(r=>r.cells.map(c=>c.v===''||c.v==null?'':c.v));
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=CW.map(w=>({wch:w}));
+  ws['!rows']=rows.map(r=>({hpt:r.ht||15}));
+
+  // Apply styles
+  rows.forEach((row,ri)=>{
+    row.cells.forEach((c,ci)=>{
+      if(!c.s)return;
+      const st=SM[c.s];if(!st)return;
+      const addr=XLSX.utils.encode_cell({r:ri,c:ci});
+      if(!ws[addr])ws[addr]={t:'s',v:''};
+      ws[addr].s={
+        fill:{patternType:'solid',fgColor:{rgb:'FF'+st.bg}},
+        font:{bold:st.bold,sz:st.sz,color:{rgb:'FF'+st.fc},name:'Calibri'},
+        alignment:{vertical:'center',wrapText: ci===NCols-1 ? true : false}
+      };
+    });
+  });
+
+  // Merges — title + day header + machine header rows only (NOT total rows — they have data in col 4)
+  const merges=[];
+  const hdrStyles=new Set([C.hdrAmb,C.hdrExp]); // header rows — never merge
+  rows.forEach((row,ri)=>{
+    const s0=row.cells[0]?.s;
+    if(hdrStyles.has(s0))return; // skip column header rows
+    if([C.title,C.sub,C.dayHdr,C.ambHdr,C.expHdr].includes(s0))
+      merges.push({s:{r:ri,c:0},e:{r:ri,c:NCols-1}});
+  });
+  ws['!merges']=merges;
+
+  // AutoFilter on first hdr row
+  const hdrRowIdx=rows.findIndex(r=>hdrStyles.has(r.cells[0]?.s));
+  if(hdrRowIdx>=0)
+    ws['!autofilter']={ref:`A${hdrRowIdx+1}:${XLSX.utils.encode_col(NCols-1)}${rows.length}`};
+
+  XLSX.utils.book_append_sheet(wbXL,ws,'Pasting Schedule');
+
+  // ── Sheet 2: KG Summary ──
+  try {
+    const allDayKeys = [...new Set(pasteSched.flatMap(j=>{
+      const keys=[];
+      let d=new Date((j.sKey||j.mrKey)+'T12:00:00');
+      const end=new Date((j.eKey||j.sKey)+'T12:00:00');
+      while(d<=end){keys.push(toLocalKey(d));d.setDate(d.getDate()+1);}
+      return keys.filter(k=>{ const dd=new Date(k+'T12:00:00'); return dd.getDay()!==0&&!holidays.has(k); });
+    }))].sort();
+
+    const pvt = buildPasteKgPivot(allDayKeys);
+    const wsPvt = XLSX.utils.aoa_to_sheet(pvt.data);
+    wsPvt['!cols'] = pvt.colWidths.map(w=>({wch:w}));
+    wsPvt['!rows'] = pvt.rowHeights.map(h=>({hpt:h}));
+    pvt.styles.forEach(({ri,ci,s})=>{
+      const addr=XLSX.utils.encode_cell({r:ri,c:ci});
+      if(!wsPvt[addr]) wsPvt[addr]={t:'s',v:''};
+      wsPvt[addr].s = s;
+    });
+    if(pvt.merges.length) wsPvt['!merges']=pvt.merges;
+    if(pvt.autoFilter)    wsPvt['!autofilter']={ref:pvt.autoFilter};
+    XLSX.utils.book_append_sheet(wbXL,wsPvt,'KG Summary');
+  } catch(pe){ console.warn('KG Summary error:',pe); }
+
+  XLSX.writeFile(wbXL,`AIA_Pasting_${new Date().toLocaleDateString('en-IN').replace(/\//g,'_')}.xlsx`);
+  toast('⬇️ Pasting Excel ready! (2 sheets)');
+}
+
+// ══════════════════════════════════════════════════════
+// MACHINE WISE EXCEL — All / Ambition / Expert sheets
+// ══════════════════════════════════════════════════════
+function dlMachineWise(){
+  if(!pasteSched.length){toast('⚠️ Schedule nahi!');return;}
+
+  const wb=XLSX.utils.book_new();
+  const dateStr=new Date().toLocaleDateString('en-IN').replace(/\//g,'_');
+
+  const HDR=['Sr','JCNO','Customer','Job Name','Pending Qty','Item Type','Dimension',
+    'Job Status','Next Process','Code','Embossing','Line',
+    'CutSize1 (in)','GSM','Tot. Cut Sh','Total KG',
+    'Machine','MR Type','MR Time','MR Date','MR Shift',
+    'Start Time','Start Date','End Time','End Date','Plan Type','Remarks'];
+
+  const hdrStyle={font:{name:'Calibri',sz:10,bold:true,color:{rgb:'FFFFFF'}},
+    fill:{fgColor:{rgb:'132240'}},
+    alignment:{horizontal:'center',vertical:'center',wrapText:true},
+    border:{bottom:{style:'medium',color:{rgb:'F97316'}},top:{style:'thin',color:{rgb:'2A3F55'}},
+      left:{style:'thin',color:{rgb:'2A3F55'}},right:{style:'thin',color:{rgb:'2A3F55'}}}};
+  const ambStyle={font:{name:'Calibri',sz:10,color:{rgb:'1E293B'}},fill:{fgColor:{rgb:'EFF6FF'}},alignment:{vertical:'center'},border:{bottom:{style:'thin',color:{rgb:'BFDBFE'}},top:{style:'thin',color:{rgb:'BFDBFE'}},left:{style:'thin',color:{rgb:'BFDBFE'}},right:{style:'thin',color:{rgb:'BFDBFE'}}}};
+  const expStyle={font:{name:'Calibri',sz:10,color:{rgb:'1E293B'}},fill:{fgColor:{rgb:'F5F3FF'}},alignment:{vertical:'center'},border:{bottom:{style:'thin',color:{rgb:'DDD6FE'}},top:{style:'thin',color:{rgb:'DDD6FE'}},left:{style:'thin',color:{rgb:'DDD6FE'}},right:{style:'thin',color:{rgb:'DDD6FE'}}}};
+  const totStyle={font:{name:'Calibri',sz:11,bold:true,color:{rgb:'F97316'}},fill:{fgColor:{rgb:'0A1628'}},alignment:{horizontal:'center',vertical:'center'},border:{bottom:{style:'medium',color:{rgb:'F97316'}},top:{style:'medium',color:{rgb:'F97316'}},left:{style:'thin',color:{rgb:'1A2B40'}},right:{style:'thin',color:{rgb:'1A2B40'}}}};
+  const titStyle={font:{name:'Calibri',sz:13,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'0A1628'}},alignment:{horizontal:'center',vertical:'center'}};
+  const ambHdStyle={font:{name:'Calibri',sz:11,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1E40AF'}},alignment:{horizontal:'center',vertical:'center'}};
+  const expHdStyle={font:{name:'Calibri',sz:11,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'5B21B6'}},alignment:{horizontal:'center',vertical:'center'}};
+
+  const CW=[4,13,20,32,8,16,12,14,14,10,16,10,9,7,10,10,10,16,10,11,9,10,11,10,11,12,12];
+
+  // Day-wise styles
+  const dayHdStyle={font:{name:'Calibri',sz:11,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'0D1B2A'}},alignment:{horizontal:'left',vertical:'center'}};
+  const dayTotStyle={font:{name:'Calibri',sz:10,bold:true,color:{rgb:'22C55E'}},fill:{fgColor:{rgb:'0A1628'}},alignment:{horizontal:'center',vertical:'center'},border:{bottom:{style:'medium',color:{rgb:'22C55E'}},top:{style:'thin',color:{rgb:'1A2B40'}},left:{style:'thin',color:{rgb:'1A2B40'}},right:{style:'thin',color:{rgb:'1A2B40'}}}};
+
+  function buildSheet(jobs, sheetLabel, machFilter){
+    const aoa=[], styles=[], merges=[], rowHts=[];
+    const NC=HDR.length;
+    const subStyle={font:{name:'Calibri',sz:10,color:{rgb:'94A3B8'}},fill:{fgColor:{rgb:'0A1628'}},alignment:{horizontal:'center',vertical:'center'}};
+
+    // Title row
+    const title=`AIA INDUSTRIES — PASTING SCHEDULE — ${sheetLabel.toUpperCase()}`;
+    aoa.push([title,...Array(NC-1).fill('')]); merges.push({s:{r:0,c:0},e:{r:0,c:NC-1}});
+    for(let col=0;col<NC;col++) styles.push({r:0,c:col,s:titStyle}); rowHts.push({hpt:28});
+
+    // Summary row
+    const totalQty=jobs.reduce((a,j)=>a+(j.qty||0),0);
+    const totalKg=Math.round(jobs.reduce((a,j)=>a+calcKg(j),0)*100)/100;
+    aoa.push([`Total Jobs: ${jobs.length}  |  Total Qty: ${totalQty.toLocaleString()}  |  Total KG: ${totalKg.toLocaleString('en-IN',{maximumFractionDigits:1})} kg`,...Array(NC-1).fill('')]);
+    merges.push({s:{r:1,c:0},e:{r:1,c:NC-1}});
+    for(let col=0;col<NC;col++) styles.push({r:1,c:col,s:subStyle}); rowHts.push({hpt:14});
+    aoa.push(Array(NC).fill('')); rowHts.push({hpt:6});
+
+    // Get machines to render
+    const machs=machFilter?[machFilter]:['Ambition','Expert'];
+
+    machs.forEach(mName=>{
+      const mJobs=jobs.filter(j=>j.mach===mName).sort((a,b)=>a.sr-b.sr);
+      if(!mJobs.length) return;
+      const isAmb=mName==='Ambition';
+      const mHdSt=isAmb?ambHdStyle:expHdStyle;
+      const rowSt=isAmb?ambStyle:expStyle;
+
+      // Machine header
+      aoa.push([`  ${isAmb?'🔵':'🟣'} ${mName.toUpperCase()} — ${mJobs.length} jobs`,...Array(NC-1).fill('')]);
+      merges.push({s:{r:aoa.length-1,c:0},e:{r:aoa.length-1,c:NC-1}});
+      for(let col=0;col<NC;col++) styles.push({r:aoa.length-1,c:col,s:mHdSt}); rowHts.push({hpt:22});
+
+      // Group by sKey (start date)
+      const byDay={};
+      mJobs.forEach(j=>{ const dk=j.sKey||j.mrKey||j.psKey||''; if(!byDay[dk]) byDay[dk]=[]; byDay[dk].push(j); });
+
+      let sr=1;
+      Object.keys(byDay).sort().forEach(dk=>{
+        const dayJobs=byDay[dk];
+        const dl=dk?new Date(dk+'T12:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}).toUpperCase():'—';
+        const dQty=dayJobs.reduce((a,j)=>a+(j.qty||0),0);
+        const dKg=Math.round(dayJobs.reduce((a,j)=>a+calcKg(j),0)*100)/100;
+        const dCut=dayJobs.reduce((a,j)=>a+(j.totalCutSh||j.cut||0),0);
+
+        // Day header
+        aoa.push([`  📅 ${dl}   |   ${dayJobs.length} jobs   |   Qty: ${dQty.toLocaleString()}   |   Cut: ${dCut.toLocaleString()}   |   KG: ${dKg}`,...Array(NC-1).fill('')]);
+        merges.push({s:{r:aoa.length-1,c:0},e:{r:aoa.length-1,c:NC-1}});
+        for(let col=0;col<NC;col++) styles.push({r:aoa.length-1,c:col,s:dayHdStyle}); rowHts.push({hpt:18});
+
+        // Column headers
+        aoa.push([...HDR]);
+        for(let col=0;col<NC;col++) styles.push({r:aoa.length-1,c:col,s:hdrStyle}); rowHts.push({hpt:22});
+
+        // Data rows
+        dayJobs.forEach(j=>{
+          const isMulti=j.sKey!==j.eKey;
+          const rmk=isMulti?`Multi-Day (Total: ${(j.totalCutSh||j.cut||0).toLocaleString()} sh, ${calcKg(j)} kg)`:'Single Day';
+          const row=[sr++,j.jcno,j.cust||'',j.name||'',j.qty||0,
+            j.itemType||'',j.dim||'',j.jobStatus||'',j.nextProcess||'',
+            j.code||'',j.embossing||'',j.line||'',
+            j.cutSize1||'—',j.gsm||0,j.totalCutSh||j.cut||0,
+            calcKg(j)||0,
+            j.mach,j.mrLabel||'',j.mrTime||'',j.mrDate||'',j.mrShift||'',
+            j.psTime||'',j.psDate||'',j.eTime||'',j.eDate||'',
+            j.planType||'',rmk];
+          aoa.push(row);
+          for(let col=0;col<NC;col++) styles.push({r:aoa.length-1,c:col,s:rowSt}); rowHts.push({hpt:15});
+        });
+
+        // Day total row
+        const dTotRow=Array(NC).fill('');
+        dTotRow[3]=`${dl} — DAY TOTAL`; dTotRow[4]=dQty; dTotRow[14]=dCut; dTotRow[15]=dKg; dTotRow[NC-1]=dayJobs.length+' jobs';
+        aoa.push(dTotRow);
+        for(let col=0;col<NC;col++) styles.push({r:aoa.length-1,c:col,s:dayTotStyle}); rowHts.push({hpt:14});
+        aoa.push(Array(NC).fill('')); rowHts.push({hpt:4});
+      });
+
+      // Machine total
+      const mQty=mJobs.reduce((a,j)=>a+(j.qty||0),0);
+      const mKg=Math.round(mJobs.reduce((a,j)=>a+calcKg(j),0)*100)/100;
+      const totRow=Array(NC).fill('');
+      totRow[3]=`${mName.toUpperCase()} TOTAL`; totRow[4]=mQty; totRow[15]=mKg; totRow[NC-1]=mJobs.length+' jobs';
+      aoa.push(totRow);
+      for(let col=0;col<NC;col++) styles.push({r:aoa.length-1,c:col,s:totStyle}); rowHts.push({hpt:18});
+      aoa.push(Array(NC).fill('')); rowHts.push({hpt:6});
+    });
+
+    // Grand total
+    const gQty=jobs.reduce((a,j)=>a+(j.qty||0),0);
+    const gKg=Math.round(jobs.reduce((a,j)=>a+calcKg(j),0)*100)/100;
+    const gRow=Array(NC).fill('');
+    gRow[3]='GRAND TOTAL'; gRow[4]=gQty; gRow[15]=gKg; gRow[NC-1]=jobs.length+' jobs';
+    aoa.push(gRow);
+    for(let col=0;col<NC;col++) styles.push({r:aoa.length-1,c:col,s:totStyle}); rowHts.push({hpt:18});
+
+    const ws=XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols']=CW.map(w=>({wch:w}));
+    ws['!rows']=rowHts;
+    if(merges.length) ws['!merges']=merges;
+    styles.forEach(({r,c,s})=>{ const addr=XLSX.utils.encode_cell({r,c}); if(!ws[addr]) ws[addr]={t:'s',v:''}; ws[addr].s=s; });
+    return ws;
+  }
+
+  // Sheet 1: All
+  XLSX.utils.book_append_sheet(wb, buildSheet(pasteSched,'All Machines',null),'All');
+  // Sheet 2: Ambition only
+  XLSX.utils.book_append_sheet(wb, buildSheet(pasteSched.filter(j=>j.mach==='Ambition'),'Ambition','Ambition'),'Ambition');
+  // Sheet 3: Expert only
+  XLSX.utils.book_append_sheet(wb, buildSheet(pasteSched.filter(j=>j.mach==='Expert'),'Expert','Expert'),'Expert');
+
+  XLSX.writeFile(wb,`AIA_Pasting_MachineWise_${dateStr}.xlsx`);
+  toast('⬇️ Machine Wise Excel ready! (3 sheets: All / Ambition / Expert)');
+}
+
+// ══════════════════════════════════════════════════════
+// KG PIVOT SUMMARY — Pasting (Ambition + Expert)
+// ══════════════════════════════════════════════════════
+function buildPasteKgPivot(days){
+  const bdr=(rgb)=>({top:{style:'thin',color:{rgb}},bottom:{style:'thin',color:{rgb}},left:{style:'thin',color:{rgb}},right:{style:'thin',color:{rgb}}});
+  const pvtStyles={
+    title:  {font:{name:'Calibri',sz:14,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'0A1628'}},alignment:{horizontal:'center',vertical:'center'}},
+    sub:    {font:{name:'Calibri',sz:10,color:{rgb:'94A3B8'}},fill:{fgColor:{rgb:'0A1628'}},alignment:{horizontal:'center',vertical:'center'}},
+    hdr:    {font:{name:'Calibri',sz:10,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'132240'}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:{bottom:{style:'medium',color:{rgb:'F97316'}},top:{style:'thin',color:{rgb:'2A3F55'}},left:{style:'thin',color:{rgb:'2A3F55'}},right:{style:'thin',color:{rgb:'2A3F55'}}}},
+    dateLbl:{font:{name:'Calibri',sz:11,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'7C3AED'}},alignment:{horizontal:'left',vertical:'center'},border:bdr('5B21B6')},
+    dateNum:{font:{name:'Calibri',sz:11,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'7C3AED'}},alignment:{horizontal:'center',vertical:'center'},border:bdr('5B21B6')},
+    ambLbl: {font:{name:'Calibri',sz:10,bold:true,color:{rgb:'1E40AF'}},fill:{fgColor:{rgb:'DBEAFE'}},alignment:{horizontal:'left',vertical:'center'},border:bdr('BFDBFE')},
+    ambNum: {font:{name:'Calibri',sz:10,color:{rgb:'1E3A5F'}},fill:{fgColor:{rgb:'EFF6FF'}},alignment:{horizontal:'center',vertical:'center'},border:bdr('BFDBFE')},
+    expLbl: {font:{name:'Calibri',sz:10,bold:true,color:{rgb:'5B21B6'}},fill:{fgColor:{rgb:'EDE9FE'}},alignment:{horizontal:'left',vertical:'center'},border:bdr('DDD6FE')},
+    expNum: {font:{name:'Calibri',sz:10,color:{rgb:'4C1D95'}},fill:{fgColor:{rgb:'F5F3FF'}},alignment:{horizontal:'center',vertical:'center'},border:bdr('DDD6FE')},
+    gtLbl:  {font:{name:'Calibri',sz:11,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'0A1628'}},alignment:{horizontal:'left',vertical:'center'},border:{bottom:{style:'medium',color:{rgb:'F97316'}},top:{style:'medium',color:{rgb:'F97316'}},left:{style:'thin',color:{rgb:'1A2B40'}},right:{style:'thin',color:{rgb:'1A2B40'}}}},
+    gtNum:  {font:{name:'Calibri',sz:11,bold:true,color:{rgb:'F97316'}},fill:{fgColor:{rgb:'0A1628'}},alignment:{horizontal:'center',vertical:'center'},border:{bottom:{style:'medium',color:{rgb:'F97316'}},top:{style:'medium',color:{rgb:'F97316'}},left:{style:'thin',color:{rgb:'1A2B40'}},right:{style:'thin',color:{rgb:'1A2B40'}}}},
+  };
+
+  const NCols=6;
+  const colWidths=[20,18,14,14,14,10];
+  const HDR=['Date','Machine','KG (Today)','Cut Sheets','Jobs','KG %'];
+
+  const data=[], styArr=[], rowHeights=[], merges=[];
+  function sty(ri,ci,s){ styArr.push({ri,ci,s:pvtStyles[s]||{}}); }
+  function styRow(ri,pairs){ pairs.forEach(([ci,s])=>sty(ri,ci,s)); }
+
+  // Title
+  data.push(['AIA INDUSTRIES — PASTING KG SUMMARY','','','','','']);
+  merges.push({s:{r:0,c:0},e:{r:0,c:NCols-1}});
+  for(let i=0;i<NCols;i++) sty(0,i,'title');
+  rowHeights.push(30);
+
+  // Sub-title date range
+  const validDays=days.filter(k=>pasteSched.some(j=>j.sKey===k||(j.sKey<k&&j.eKey>=k)));
+  const dtRange=validDays.length>=2
+    ? new Date(validDays[0]+'T12:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})
+      +' to '+new Date(validDays[validDays.length-1]+'T12:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})
+    : '';
+  data.push([dtRange,'','','','','']);
+  merges.push({s:{r:1,c:0},e:{r:1,c:NCols-1}});
+  for(let i=0;i<NCols;i++) sty(1,i,'sub');
+  rowHeights.push(14);
+
+  // Empty
+  data.push(Array(NCols).fill(''));
+  rowHeights.push(5);
+
+  // Header
+  data.push(HDR);
+  for(let i=0;i<NCols;i++) sty(3,i,'hdr');
+  rowHeights.push(30);
+
+  let gKg=0, gCut=0, gJobs=0;
+
+  days.forEach(key=>{
+    const startJ=pasteSched.filter(j=>j.sKey===key);
+    const ipJ   =pasteSched.filter(j=>j.sKey<key&&j.eKey>=key);
+    const allDay=[...startJ,...ipJ];
+    if(!allDay.length) return;
+
+    const amb=allDay.filter(j=>j.mach==='Ambition');
+    const exp=allDay.filter(j=>j.mach==='Expert');
+
+    const ambKg  = amb.reduce((a,j)=>a+calcKgForDay(j,key).kg,0);
+    const expKg  = exp.reduce((a,j)=>a+calcKgForDay(j,key).kg,0);
+    const ambCut = amb.reduce((a,j)=>{ const isM=j.sKey!==j.eKey; return a+(isM?calcKgForDay(j,key).sheets:(j.totalCutSh||j.cut||0)); },0);
+    const expCut = exp.reduce((a,j)=>{ const isM=j.sKey!==j.eKey; return a+(isM?calcKgForDay(j,key).sheets:(j.totalCutSh||j.cut||0)); },0);
+    const totKg  = ambKg+expKg;
+    const totCut = ambCut+expCut;
+
+    gKg+=totKg; gCut+=totCut; gJobs+=allDay.length;
+
+    const dLabel=new Date(key+'T12:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
+
+    // Date total row
+    const ri0=data.length;
+    data.push([dLabel,'Amb + Exp', Math.round(totKg*100)/100, Math.round(totCut), allDay.length, '100%']);
+    styRow(ri0,[[0,'dateLbl'],[1,'dateNum'],[2,'dateNum'],[3,'dateNum'],[4,'dateNum'],[5,'dateNum']]);
+    rowHeights.push(18);
+
+    // Ambition row
+    if(amb.length){
+      const ri1=data.length;
+      const ambPct=totKg>0?Math.round(ambKg/totKg*100)+'%':'—';
+      data.push(['','Ambition', Math.round(ambKg*100)/100, Math.round(ambCut), amb.length, ambPct]);
+      styRow(ri1,[[0,'ambNum'],[1,'ambLbl'],[2,'ambNum'],[3,'ambNum'],[4,'ambNum'],[5,'ambNum']]);
+      rowHeights.push(15);
+    }
+
+    // Expert row
+    if(exp.length){
+      const ri2=data.length;
+      const expPct=totKg>0?Math.round(expKg/totKg*100)+'%':'—';
+      data.push(['','Expert', Math.round(expKg*100)/100, Math.round(expCut), exp.length, expPct]);
+      styRow(ri2,[[0,'expNum'],[1,'expLbl'],[2,'expNum'],[3,'expNum'],[4,'expNum'],[5,'expNum']]);
+      rowHeights.push(15);
+    }
+  });
+
+  // Grand Total
+  const gri=data.length;
+  data.push(['Grand Total','Amb + Exp', Math.round(gKg*100)/100, Math.round(gCut), gJobs, '']);
+  for(let i=0;i<NCols;i++) sty(gri,i,i===0?'gtLbl':'gtNum');
+  rowHeights.push(22);
+
+  return {data, colWidths, rowHeights, styles:styArr, merges, autoFilter:'A4:F4'};
+}
+
+function normalizeKeys(rows){return rows.map(r=>{const n={};Object.keys(r).forEach(k=>{const ck=k.replace(/[\r\n\t]+/g,' ').replace(/\s{2,}/g,' ').trim();const v=String(r[k]===null||r[k]===undefined?'':r[k]).trim();n[ck]=v;if(ck!==k)n[k.trim()]=v;const nk=ck.replace(/_/g,'');if(nk!==ck)n[nk]=v;});return n;});}
+function fg(r,...keys){for(const k of keys){if(r[k]!==undefined&&r[k]!=='')return r[k];const kl=k.replace(/[\s\r\n\t_]+/g,'').toLowerCase();if(r['__'+kl]!==undefined&&r['__'+kl]!=='')return r['__'+kl];const fk=Object.keys(r).find(rk=>!rk.startsWith('__')&&rk.replace(/[\s\r\n\t_]+/g,'').toLowerCase()===kl);if(fk&&r[fk]!==undefined&&r[fk]!=='')return r[fk];}return '';}
+var _tt;function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('on'),3500);}
+
+// ══════════════════════════════════════════════════════
+// MACHINE BREAKDOWN ENGINE — PASTING
+// ══════════════════════════════════════════════════════
+const bdState={active:false,breaks:[]};
+let _bdFMach='';
+
+function bdFullDayFlow(){
+  document.getElementById('bdFullDayForm').style.display='';
+  _bdFMach='';
+  const t=new Date();
+  document.getElementById('bdFullDateIn').value=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+  ['bdFMachAmb','bdFMachExp','bdFMachBoth'].forEach(id=>document.getElementById(id).className='bd-mach-btn');
+}
+function bdFSelectMach(m){
+  _bdFMach=m;
+  document.getElementById('bdFMachAmb').className='bd-mach-btn'+(m==='Ambition'||m==='Both'?' sel-amb':'');
+  document.getElementById('bdFMachExp').className='bd-mach-btn'+(m==='Expert'||m==='Both'?' sel-exp':'');
+  document.getElementById('bdFMachBoth').className='bd-mach-btn'+(m==='Both'?' sel-both':'');
+}
+function bdApplyFull(){
+  const dateKey=document.getElementById('bdFullDateIn').value;
+  if(!dateKey){toast('⚠️ Date select karo!');return;}
+  if(!_bdFMach){toast('⚠️ Machine select karo!');return;}
+  document.getElementById('bdFullDayForm').style.display='none';
+  const machs=_bdFMach==='Both'?['Ambition','Expert']:[_bdFMach];
+  const toShift=new Set(pasteSched.filter(j=>machs.includes(j.mach)&&j.sKey===dateKey).map(j=>j.jcno));
+  bdApplyBreakdown(_bdFMach,dateKey,'full',toShift);
+}
+
+let _bdSpMach='',_bdSpSelected=new Set();
+function bdOpenSpecificModal(){
+  _bdSpMach='';_bdSpSelected=new Set();
+  const t=new Date();
+  document.getElementById('bdSpDateIn').value=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+  ['bdSpMachAmb','bdSpMachExp','bdSpMachBoth'].forEach(id=>document.getElementById(id).className='bd-mach-btn');
+  document.getElementById('bdSpCount').textContent='0 jobs selected';
+  document.getElementById('bdSpJobList').innerHTML='<div style="text-align:center;padding:40px;color:#475569;font-size:13px;">📅 Upar date aani machine select karo</div>';
+  document.getElementById('bdSpecificModal').classList.add('on');
+}
+function bdCloseSpecificModal(){document.getElementById('bdSpecificModal').classList.remove('on');}
+function bdSpSelectMach(m){
+  _bdSpMach=m;
+  document.getElementById('bdSpMachAmb').className='bd-mach-btn'+(m==='Ambition'||m==='Both'?' sel-amb':'');
+  document.getElementById('bdSpMachExp').className='bd-mach-btn'+(m==='Expert'||m==='Both'?' sel-exp':'');
+  document.getElementById('bdSpMachBoth').className='bd-mach-btn'+(m==='Both'?' sel-both':'');
+  bdSpRefresh();
+}
+function bdSpRefresh(){
+  const dateKey=document.getElementById('bdSpDateIn').value;
+  if(!dateKey||!_bdSpMach)return;
+  const machs=_bdSpMach==='Both'?['Ambition','Expert']:[_bdSpMach];
+  const allJobs=pasteSched.filter(j=>machs.includes(j.mach)&&j.sKey===dateKey);
+  if(!allJobs.length){
+    document.getElementById('bdSpJobList').innerHTML=`<div style="text-align:center;padding:40px;color:#475569;font-size:13px;">⚠️ Is date var ${_bdSpMach} var koi jobs nahi aahet.</div>`;
+    return;
+  }
+  _bdSpSelected=new Set();
+  document.getElementById('bdSpCount').textContent='0 jobs selected';
+  const machColors={'Ambition':'#3b82f6','Expert':'#8b5cf6'};
+  const machBgs={'Ambition':'#1e3a5f','Expert':'#2e1065'};
+  document.getElementById('bdSpJobList').innerHTML=allJobs.map((j,i)=>{
+    const mc=machColors[j.mach]||'#3b82f6',mb=machBgs[j.mach]||'#1e3a5f';
+    const unitMatch=(j.jcno||'').match(/\d+$/);
+    return`<div class="bd-sp-job-row" id="bdsprow-${i}" onclick="bdSpToggle(${i},'${j.jcno}')">
+      <div class="bd-sp-check" id="bdspc-${i}"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
+          <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:800;color:#3b82f6;">${j.jcno}</span>
+          <span style="background:${mb};color:${mc};font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;">${j.mach}</span>
+          ${j.planType?`<span style="background:#1a2736;color:#94a3b8;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;">${j.planType}</span>`:''}
+          ${j.isBraille?`<span style="background:#2e1065;color:#c4b5fd;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;">✏️ Braille</span>`:''}
+        </div>
+        <div style="font-size:12px;font-weight:700;color:#e2e8f0;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${j.name||j.jcno}</div>
+        <div style="font-size:10px;color:#64748b;display:flex;gap:10px;flex-wrap:wrap;">
+          <span>${j.cust||''}</span>
+          ${j.qty?`<span>📦 ${j.qty.toLocaleString()}</span>`:''}
+          ${j.itemType?`<span>🏷️ ${j.itemType}</span>`:''}
+          <span>⏱️ ${(j.mrTime||'')} → ${j.eTime||''}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function bdSpToggle(i,jcno){
+  const row=document.getElementById('bdsprow-'+i),check=document.getElementById('bdspc-'+i);
+  if(_bdSpSelected.has(jcno)){_bdSpSelected.delete(jcno);row.classList.remove('bd-sp-sel');check.textContent='';}
+  else{_bdSpSelected.add(jcno);row.classList.add('bd-sp-sel');check.textContent='✓';}
+  const n=_bdSpSelected.size;
+  document.getElementById('bdSpCount').textContent=n+' job'+(n===1?'':'s')+' selected';
+}
+function bdApplySpecific(){
+  const dateKey=document.getElementById('bdSpDateIn').value;
+  if(!dateKey){toast('⚠️ Date select karo!');return;}
+  if(!_bdSpMach){toast('⚠️ Machine select karo!');return;}
+  if(_bdSpSelected.size===0){toast('⚠️ Koi job select nahi kela!');return;}
+  bdCloseSpecificModal();
+  bdApplyBreakdown(_bdSpMach,dateKey,'specific',_bdSpSelected);
+}
+
+function bdApplyBreakdown(mach,dateKey,mode,shiftJcnos){
+  const machs=mach==='Both'?['Ambition','Expert']:[mach];
+  const nextWD=addWorkDay(dateKey);
+  bdState.active=true;
+  bdState.breaks.push({mach,dateKey,mode,shiftedJcnos:new Set(shiftJcnos)});
+  bdReplanJobs(machs,nextWD,shiftJcnos);
+  const dLabel=new Date(dateKey+'T12:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  document.getElementById('bdStatusMsg').innerHTML=`<span style="color:#fb923c;font-weight:700;">⚠️ Breakdown Active — ${mach} — ${dLabel} — ${mode==='full'?'Full Day':shiftJcnos.size+' Jobs Shifted'}</span>`;
+  bdUpdateChips();
+  toast(`✅ ${shiftJcnos.size} jobs → ${nextWD} la shifted!`);
+  renderSchedule();
+}
+
+function bdReplanJobs(machs,nextWD,toShiftSet){
+  const nextWM=dayKeyToWM(nextWD);
+  machs.forEach(m=>{
+    const machJobs=pasteSched.filter(j=>j.mach===m).sort((a,b)=>a.sr-b.sr);
+    let cursor=0,lastDim=null;
+    machJobs.forEach(j=>{
+      if(!toShiftSet.has(j.jcno)){
+        const eWM=dayKeyToWM(j.eKey)+(j.proc||0);
+        if(eWM>cursor){cursor=eWM;lastDim=j.dim?j.dim.trim():lastDim;}
+      }
+    });
+    let machCursor=Math.max(cursor,nextWM);
+    const toDelay=machJobs.filter(j=>toShiftSet.has(j.jcno));
+    toDelay.forEach(j=>{
+      const dim=(j.dim||'').trim();
+      const sameDim=!!(dim&&lastDim===dim);
+      const{speed,mr}=getPasteParams(j.itemType||'');
+      const mrMins=sameDim?10:mr;
+      const mrLabel=sameDim?'Same Dim (10 min)':`New Type (${mr} min)`;
+      const cut=(j.qty&&j.qty>0)?j.qty:(j.cut||0);
+      const proc=Math.round(cut/speed);
+      const prodWM=machCursor+mrMins,eWM=prodWM+proc;
+      const mrI=wmToInfo(machCursor),psI=wmToInfo(prodWM),eI=wmToInfo(eWM);
+      j.mrLabel=mrLabel;j.mrMins=mrMins;j.proc=proc;j.prodWM=prodWM;j.eWM=eWM;
+      j.mrTime=mrI.timeStr;j.mrDate=mrI.dateStr;j.mrKey=mrI.dayKey;j.mrShift=mrI.shift;
+      j.psTime=psI.timeStr;j.psDate=psI.dateStr;j.psKey=psI.dayKey;j.psShift=psI.shift;
+      j.eTime=eI.timeStr;j.eDate=eI.dateStr;j.eKey=eI.dayKey;j.eShift=eI.shift;
+      j.sKey=mrI.dayKey;j._bdShifted=true;
+      machCursor=eWM;lastDim=dim||lastDim;
+    });
+    // Cascade: jobs after shifted ones
+    const maxSr=toDelay.length?Math.max(...toDelay.map(j=>j.sr)):0;
+    machJobs.filter(j=>j.sr>maxSr&&!toShiftSet.has(j.jcno)).sort((a,b)=>a.sr-b.sr).forEach(j=>{
+      const existWM=dayKeyToWM(j.sKey);
+      if(machCursor<=existWM){machCursor=existWM+(j.proc||0)+j.mrMins;return;}
+      const dim=(j.dim||'').trim();
+      const sameDim=!!(dim&&lastDim===dim);
+      const{speed,mr}=getPasteParams(j.itemType||'');
+      const mrMins=sameDim?10:mr;
+      const cut=(j.qty&&j.qty>0)?j.qty:(j.cut||0);
+      const proc=Math.round(cut/speed);
+      const prodWM=machCursor+mrMins,eWM=prodWM+proc;
+      const mrI=wmToInfo(machCursor),psI=wmToInfo(prodWM),eI=wmToInfo(eWM);
+      j.mrLabel=sameDim?'Same Dim (10 min)':`New Type (${mr} min)`;j.mrMins=mrMins;j.proc=proc;j.prodWM=prodWM;j.eWM=eWM;
+      j.mrTime=mrI.timeStr;j.mrDate=mrI.dateStr;j.mrKey=mrI.dayKey;j.mrShift=mrI.shift;
+      j.psTime=psI.timeStr;j.psDate=psI.dateStr;j.psKey=psI.dayKey;j.psShift=psI.shift;
+      j.eTime=eI.timeStr;j.eDate=eI.dateStr;j.eKey=eI.dayKey;j.eShift=eI.shift;
+      j.sKey=mrI.dayKey;machCursor=eWM;lastDim=dim||lastDim;
+    });
+  });
+}
+
+function bdUpdateChips(){
+  const el=document.getElementById('bdActiveChips');
+  if(!bdState.breaks.length){el.style.display='none';return;}
+  el.style.display='flex';
+  el.innerHTML=bdState.breaks.map((b,i)=>{
+    const dLabel=new Date(b.dateKey+'T12:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+    return`<div class="bd-active-chip">⚠️ ${b.mach} · ${dLabel} · ${b.mode==='full'?'Full Day':b.shiftedJcnos.size+' jobs'}
+      <button onclick="bdRemoveBreak(${i})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:13px;padding:0 0 0 4px;font-weight:800;">✕</button>
+    </div>`;
+  }).join('');
+}
+function bdRemoveBreak(i){
+  bdState.breaks.splice(i,1);
+  if(!bdState.breaks.length)bdState.active=false;
+  bdUpdateChips();
+  buildSchedule();
+}
+function bdReset(){
+  bdState.active=false;bdState.breaks=[];
+  document.getElementById('bdFullDayForm').style.display='none';
+  document.getElementById('bdActiveChips').style.display='none';
+  document.getElementById('bdStatusMsg').textContent='Koi breakdown set nahi. Schedule normal aahe.';
+  if(pasteSched.length)buildSchedule();
+  toast('↺ Breakdown reset!');
+}
+
+// dayKeyToWM — working minutes from BASE to dateKey start
+function dayKeyToWM(dateKey){
+  if(!dateKey||!/^\d{4}-\d{2}-\d{2}$/.test(dateKey))return 0;
+  let d=new Date(dateKey+'T12:00:00');
+  let base=new Date(BASE);base.setHours(12,0,0,0);
+  let wDays=0,cur=new Date(base);
+  while(toLocalKey(cur)<toLocalKey(d)){cur.setDate(cur.getDate()+1);if(cur.getDay()!==0&&!holidays.has(toLocalKey(cur)))wDays++;}
+  return wDays*DAY_WORK;
+}
+</script>
+</body>
+</html>
