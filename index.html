@@ -1382,24 +1382,24 @@ function dlExcel(){
   const CW=[4,13,20,32,8,16,12,14,14,10,16,10,9,7,10,10,10,16,10,11,9,10,11,10,11,12,12];
   const HDR=['Sr','JCNO','Customer','Job Name','Pending Qty','Item Type','Dimension','Job Status','Next Process','Code','Embossing','Line','CutSize1 (in)','GSM','Tot. Cut Sh','Total KG','Machine','MR Type','MR Time','MR Date','MR Shift','Start Time','Start Date','End Time','End Date','Plan Type','Remarks'];
 
-  // Colors
+  // Colors — Plain (no background, print-friendly)
   const C={
-    title:  {bg:'1A3A6B',fc:'FFFFFF',bold:true,sz:14},
-    sub:    {bg:'0A1628',fc:'94A3B8',bold:false,sz:10},
-    dayHdr: {bg:'0A1628',fc:'FFFFFF',bold:true,sz:13},
-    ambHdr: {bg:'1E40AF',fc:'FFFFFF',bold:true,sz:11},
-    expHdr: {bg:'5B21B6',fc:'FFFFFF',bold:true,sz:11},
-    hdrAmb: {bg:'1E3A5F',fc:'CBD5E1',bold:true,sz:9},
-    hdrExp: {bg:'2D1B69',fc:'CBD5E1',bold:true,sz:9},
-    ambRow: {bg:'EFF6FF',fc:'1E293B',bold:false,sz:10},
-    expRow: {bg:'F5F3FF',fc:'1E293B',bold:false,sz:10},
-    breilRow:{bg:'FAF5FF',fc:'5B21B6',bold:false,sz:10},
-    csRow:  {bg:'FFF7ED',fc:'1E293B',bold:false,sz:10},
-    phRow:  {bg:'FFFBEB',fc:'92400E',bold:false,sz:10},
-    timeAmb:{bg:'EFF6FF',fc:'1E40AF',bold:true,sz:10},
-    timeExp:{bg:'F5F3FF',fc:'5B21B6',bold:true,sz:10},
-    breilTime:{bg:'FAF5FF',fc:'6D28D9',bold:true,sz:10},
-    total:  {bg:'1E293B',fc:'22C55E',bold:true,sz:11},
+    title:  {bg:'FFFFFF',fc:'000000',bold:true,sz:14},
+    sub:    {bg:'FFFFFF',fc:'444444',bold:false,sz:10},
+    dayHdr: {bg:'D9D9D9',fc:'000000',bold:true,sz:12},
+    ambHdr: {bg:'D9D9D9',fc:'000000',bold:true,sz:11},
+    expHdr: {bg:'D9D9D9',fc:'000000',bold:true,sz:11},
+    hdrAmb: {bg:'BFBFBF',fc:'000000',bold:true,sz:9},
+    hdrExp: {bg:'BFBFBF',fc:'000000',bold:true,sz:9},
+    ambRow: {bg:'FFFFFF',fc:'000000',bold:false,sz:10},
+    expRow: {bg:'FFFFFF',fc:'000000',bold:false,sz:10},
+    breilRow:{bg:'FFFFFF',fc:'000000',bold:false,sz:10},
+    csRow:  {bg:'FFFFFF',fc:'000000',bold:false,sz:10},
+    phRow:  {bg:'FFFFFF',fc:'000000',bold:false,sz:10},
+    timeAmb:{bg:'FFFFFF',fc:'000000',bold:true,sz:10},
+    timeExp:{bg:'FFFFFF',fc:'000000',bold:true,sz:10},
+    breilTime:{bg:'FFFFFF',fc:'000000',bold:true,sz:10},
+    total:  {bg:'D9D9D9',fc:'000000',bold:true,sz:11},
   };
 
   function cell(v,s){return{v,s};}
@@ -1577,28 +1577,28 @@ function dlMachineWise(){
     'Machine','MR Type','MR Time','MR Date','MR Shift',
     'Start Time','Start Date','End Time','End Date','Plan Type','Remarks'];
 
-  const hdrStyle={font:{name:'Calibri',sz:10,bold:true,color:{rgb:'FFFFFF'}},
-    fill:{fgColor:{rgb:'132240'}},
+  const hdrStyle={font:{name:'Calibri',sz:10,bold:true,color:{rgb:'000000'}},
+    fill:{fgColor:{rgb:'BFBFBF'}},
     alignment:{horizontal:'center',vertical:'center',wrapText:true},
-    border:{bottom:{style:'medium',color:{rgb:'F97316'}},top:{style:'thin',color:{rgb:'2A3F55'}},
-      left:{style:'thin',color:{rgb:'2A3F55'}},right:{style:'thin',color:{rgb:'2A3F55'}}}};
-  const ambStyle={font:{name:'Calibri',sz:10,color:{rgb:'1E293B'}},fill:{fgColor:{rgb:'EFF6FF'}},alignment:{vertical:'center'},border:{bottom:{style:'thin',color:{rgb:'BFDBFE'}},top:{style:'thin',color:{rgb:'BFDBFE'}},left:{style:'thin',color:{rgb:'BFDBFE'}},right:{style:'thin',color:{rgb:'BFDBFE'}}}};
-  const expStyle={font:{name:'Calibri',sz:10,color:{rgb:'1E293B'}},fill:{fgColor:{rgb:'F5F3FF'}},alignment:{vertical:'center'},border:{bottom:{style:'thin',color:{rgb:'DDD6FE'}},top:{style:'thin',color:{rgb:'DDD6FE'}},left:{style:'thin',color:{rgb:'DDD6FE'}},right:{style:'thin',color:{rgb:'DDD6FE'}}}};
-  const totStyle={font:{name:'Calibri',sz:11,bold:true,color:{rgb:'F97316'}},fill:{fgColor:{rgb:'0A1628'}},alignment:{horizontal:'center',vertical:'center'},border:{bottom:{style:'medium',color:{rgb:'F97316'}},top:{style:'medium',color:{rgb:'F97316'}},left:{style:'thin',color:{rgb:'1A2B40'}},right:{style:'thin',color:{rgb:'1A2B40'}}}};
-  const titStyle={font:{name:'Calibri',sz:13,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'0A1628'}},alignment:{horizontal:'center',vertical:'center'}};
-  const ambHdStyle={font:{name:'Calibri',sz:11,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1E40AF'}},alignment:{horizontal:'center',vertical:'center'}};
-  const expHdStyle={font:{name:'Calibri',sz:11,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'5B21B6'}},alignment:{horizontal:'center',vertical:'center'}};
+    border:{bottom:{style:'medium',color:{rgb:'888888'}},top:{style:'thin',color:{rgb:'888888'}},
+      left:{style:'thin',color:{rgb:'888888'}},right:{style:'thin',color:{rgb:'888888'}}}};
+  const ambStyle={font:{name:'Calibri',sz:10,color:{rgb:'000000'}},fill:{fgColor:{rgb:'FFFFFF'}},alignment:{vertical:'center'},border:{bottom:{style:'thin',color:{rgb:'D0D0D0'}},top:{style:'thin',color:{rgb:'D0D0D0'}},left:{style:'thin',color:{rgb:'D0D0D0'}},right:{style:'thin',color:{rgb:'D0D0D0'}}}};
+  const expStyle={font:{name:'Calibri',sz:10,color:{rgb:'000000'}},fill:{fgColor:{rgb:'FFFFFF'}},alignment:{vertical:'center'},border:{bottom:{style:'thin',color:{rgb:'D0D0D0'}},top:{style:'thin',color:{rgb:'D0D0D0'}},left:{style:'thin',color:{rgb:'D0D0D0'}},right:{style:'thin',color:{rgb:'D0D0D0'}}}};
+  const totStyle={font:{name:'Calibri',sz:11,bold:true,color:{rgb:'000000'}},fill:{fgColor:{rgb:'D9D9D9'}},alignment:{horizontal:'center',vertical:'center'},border:{bottom:{style:'medium',color:{rgb:'888888'}},top:{style:'medium',color:{rgb:'888888'}},left:{style:'thin',color:{rgb:'888888'}},right:{style:'thin',color:{rgb:'888888'}}}};
+  const titStyle={font:{name:'Calibri',sz:13,bold:true,color:{rgb:'000000'}},fill:{fgColor:{rgb:'FFFFFF'}},alignment:{horizontal:'center',vertical:'center'}};
+  const ambHdStyle={font:{name:'Calibri',sz:11,bold:true,color:{rgb:'000000'}},fill:{fgColor:{rgb:'D9D9D9'}},alignment:{horizontal:'center',vertical:'center'}};
+  const expHdStyle={font:{name:'Calibri',sz:11,bold:true,color:{rgb:'000000'}},fill:{fgColor:{rgb:'D9D9D9'}},alignment:{horizontal:'center',vertical:'center'}};
 
   const CW=[4,13,20,32,8,16,12,14,14,10,16,10,9,7,10,10,10,16,10,11,9,10,11,10,11,12,12];
 
   // Day-wise styles
-  const dayHdStyle={font:{name:'Calibri',sz:11,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'0D1B2A'}},alignment:{horizontal:'left',vertical:'center'}};
-  const dayTotStyle={font:{name:'Calibri',sz:10,bold:true,color:{rgb:'22C55E'}},fill:{fgColor:{rgb:'0A1628'}},alignment:{horizontal:'center',vertical:'center'},border:{bottom:{style:'medium',color:{rgb:'22C55E'}},top:{style:'thin',color:{rgb:'1A2B40'}},left:{style:'thin',color:{rgb:'1A2B40'}},right:{style:'thin',color:{rgb:'1A2B40'}}}};
+  const dayHdStyle={font:{name:'Calibri',sz:11,bold:true,color:{rgb:'000000'}},fill:{fgColor:{rgb:'E0E0E0'}},alignment:{horizontal:'left',vertical:'center'}};
+  const dayTotStyle={font:{name:'Calibri',sz:10,bold:true,color:{rgb:'000000'}},fill:{fgColor:{rgb:'D9D9D9'}},alignment:{horizontal:'center',vertical:'center'},border:{bottom:{style:'medium',color:{rgb:'888888'}},top:{style:'thin',color:{rgb:'888888'}},left:{style:'thin',color:{rgb:'888888'}},right:{style:'thin',color:{rgb:'888888'}}}};
 
   function buildSheet(jobs, sheetLabel, machFilter){
     const aoa=[], styles=[], merges=[], rowHts=[];
     const NC=HDR.length;
-    const subStyle={font:{name:'Calibri',sz:10,color:{rgb:'94A3B8'}},fill:{fgColor:{rgb:'0A1628'}},alignment:{horizontal:'center',vertical:'center'}};
+    const subStyle={font:{name:'Calibri',sz:10,color:{rgb:'444444'}},fill:{fgColor:{rgb:'FFFFFF'}},alignment:{horizontal:'center',vertical:'center'}};
 
     // Title row
     const title=`AIA INDUSTRIES — PASTING SCHEDULE — ${sheetLabel.toUpperCase()}`;
@@ -1716,17 +1716,17 @@ function dlMachineWise(){
 function buildPasteKgPivot(days){
   const bdr=(rgb)=>({top:{style:'thin',color:{rgb}},bottom:{style:'thin',color:{rgb}},left:{style:'thin',color:{rgb}},right:{style:'thin',color:{rgb}}});
   const pvtStyles={
-    title:  {font:{name:'Calibri',sz:14,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'0A1628'}},alignment:{horizontal:'center',vertical:'center'}},
-    sub:    {font:{name:'Calibri',sz:10,color:{rgb:'94A3B8'}},fill:{fgColor:{rgb:'0A1628'}},alignment:{horizontal:'center',vertical:'center'}},
-    hdr:    {font:{name:'Calibri',sz:10,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'132240'}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:{bottom:{style:'medium',color:{rgb:'F97316'}},top:{style:'thin',color:{rgb:'2A3F55'}},left:{style:'thin',color:{rgb:'2A3F55'}},right:{style:'thin',color:{rgb:'2A3F55'}}}},
-    dateLbl:{font:{name:'Calibri',sz:11,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'7C3AED'}},alignment:{horizontal:'left',vertical:'center'},border:bdr('5B21B6')},
-    dateNum:{font:{name:'Calibri',sz:11,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'7C3AED'}},alignment:{horizontal:'center',vertical:'center'},border:bdr('5B21B6')},
-    ambLbl: {font:{name:'Calibri',sz:10,bold:true,color:{rgb:'1E40AF'}},fill:{fgColor:{rgb:'DBEAFE'}},alignment:{horizontal:'left',vertical:'center'},border:bdr('BFDBFE')},
-    ambNum: {font:{name:'Calibri',sz:10,color:{rgb:'1E3A5F'}},fill:{fgColor:{rgb:'EFF6FF'}},alignment:{horizontal:'center',vertical:'center'},border:bdr('BFDBFE')},
-    expLbl: {font:{name:'Calibri',sz:10,bold:true,color:{rgb:'5B21B6'}},fill:{fgColor:{rgb:'EDE9FE'}},alignment:{horizontal:'left',vertical:'center'},border:bdr('DDD6FE')},
-    expNum: {font:{name:'Calibri',sz:10,color:{rgb:'4C1D95'}},fill:{fgColor:{rgb:'F5F3FF'}},alignment:{horizontal:'center',vertical:'center'},border:bdr('DDD6FE')},
-    gtLbl:  {font:{name:'Calibri',sz:11,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'0A1628'}},alignment:{horizontal:'left',vertical:'center'},border:{bottom:{style:'medium',color:{rgb:'F97316'}},top:{style:'medium',color:{rgb:'F97316'}},left:{style:'thin',color:{rgb:'1A2B40'}},right:{style:'thin',color:{rgb:'1A2B40'}}}},
-    gtNum:  {font:{name:'Calibri',sz:11,bold:true,color:{rgb:'F97316'}},fill:{fgColor:{rgb:'0A1628'}},alignment:{horizontal:'center',vertical:'center'},border:{bottom:{style:'medium',color:{rgb:'F97316'}},top:{style:'medium',color:{rgb:'F97316'}},left:{style:'thin',color:{rgb:'1A2B40'}},right:{style:'thin',color:{rgb:'1A2B40'}}}},
+    title:  {font:{name:'Calibri',sz:14,bold:true,color:{rgb:'000000'}},fill:{fgColor:{rgb:'FFFFFF'}},alignment:{horizontal:'center',vertical:'center'}},
+    sub:    {font:{name:'Calibri',sz:10,color:{rgb:'444444'}},fill:{fgColor:{rgb:'FFFFFF'}},alignment:{horizontal:'center',vertical:'center'}},
+    hdr:    {font:{name:'Calibri',sz:10,bold:true,color:{rgb:'000000'}},fill:{fgColor:{rgb:'BFBFBF'}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:{bottom:{style:'medium',color:{rgb:'888888'}},top:{style:'thin',color:{rgb:'888888'}},left:{style:'thin',color:{rgb:'888888'}},right:{style:'thin',color:{rgb:'888888'}}}},
+    dateLbl:{font:{name:'Calibri',sz:11,bold:true,color:{rgb:'000000'}},fill:{fgColor:{rgb:'D9D9D9'}},alignment:{horizontal:'left',vertical:'center'},border:bdr('888888')},
+    dateNum:{font:{name:'Calibri',sz:11,bold:true,color:{rgb:'000000'}},fill:{fgColor:{rgb:'D9D9D9'}},alignment:{horizontal:'center',vertical:'center'},border:bdr('888888')},
+    ambLbl: {font:{name:'Calibri',sz:10,bold:true,color:{rgb:'000000'}},fill:{fgColor:{rgb:'FFFFFF'}},alignment:{horizontal:'left',vertical:'center'},border:bdr('D0D0D0')},
+    ambNum: {font:{name:'Calibri',sz:10,color:{rgb:'000000'}},fill:{fgColor:{rgb:'FFFFFF'}},alignment:{horizontal:'center',vertical:'center'},border:bdr('D0D0D0')},
+    expLbl: {font:{name:'Calibri',sz:10,bold:true,color:{rgb:'000000'}},fill:{fgColor:{rgb:'FFFFFF'}},alignment:{horizontal:'left',vertical:'center'},border:bdr('D0D0D0')},
+    expNum: {font:{name:'Calibri',sz:10,color:{rgb:'000000'}},fill:{fgColor:{rgb:'FFFFFF'}},alignment:{horizontal:'center',vertical:'center'},border:bdr('D0D0D0')},
+    gtLbl:  {font:{name:'Calibri',sz:11,bold:true,color:{rgb:'000000'}},fill:{fgColor:{rgb:'D9D9D9'}},alignment:{horizontal:'left',vertical:'center'},border:{bottom:{style:'medium',color:{rgb:'888888'}},top:{style:'medium',color:{rgb:'888888'}},left:{style:'thin',color:{rgb:'888888'}},right:{style:'thin',color:{rgb:'888888'}}}},
+    gtNum:  {font:{name:'Calibri',sz:11,bold:true,color:{rgb:'000000'}},fill:{fgColor:{rgb:'D9D9D9'}},alignment:{horizontal:'center',vertical:'center'},border:{bottom:{style:'medium',color:{rgb:'888888'}},top:{style:'medium',color:{rgb:'888888'}},left:{style:'thin',color:{rgb:'888888'}},right:{style:'thin',color:{rgb:'888888'}}}},
   };
 
   const NCols=6;
