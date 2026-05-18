@@ -288,6 +288,7 @@ tr.breil-row{background:#F3E8FF;border-left:4px solid #7C3AED;}
       <button class="btn btn-orange btn-sm" onclick="openManualModal()">➕ Add Job</button>
       <button class="btn btn-green btn-sm" onclick="dlExcel()">⬇️ Full Plan Excel</button>
       <button class="btn btn-sm" style="background:#7C3AED;color:#fff;" onclick="dlMachineWise()">⬇️ Machine Wise Excel</button>
+      <button class="btn btn-sm" style="background:#1e293b;color:#fff;border:2px solid #475569;" onclick="dl7DayPrint()">🖨️ 7-Day Print</button>
     </div>
   </div>
   <div id="dayView"><div id="dayCards"></div></div>
@@ -2021,6 +2022,285 @@ function dayKeyToWM(dateKey){
   let wDays=0,cur=new Date(base);
   while(toLocalKey(cur)<toLocalKey(d)){cur.setDate(cur.getDate()+1);if(cur.getDay()!==0&&!holidays.has(toLocalKey(cur)))wDays++;}
   return wDays*DAY_WORK;
+}
+
+// ══════════════════════════════════════════════════════
+// 7-DAY PRINT — Black & White, Landscape, Fit-to-page
+// ══════════════════════════════════════════════════════
+function dl7DayPrint(){
+  if(!pasteSched.length){ toast('⚠️ No schedule available!'); return; }
+
+  // Collect next 7 working days from BASE
+  let workDays = [];
+  let d = new Date(BASE); d.setHours(12,0,0,0);
+  while(workDays.length < 7){
+    const k = toLocalKey(d);
+    if(d.getDay() !== 0 && !holidays.has(k)) workDays.push(k);
+    d.setDate(d.getDate()+1);
+  }
+
+  // Only days that have jobs
+  let days = workDays.filter(key => {
+    const start = pasteSched.filter(j => j.sKey === key);
+    const ip    = pasteSched.filter(j => j.sKey < key && j.eKey >= key);
+    return start.length || ip.length;
+  });
+
+  if(!days.length){ toast('⚠️ No jobs in next 7 days!'); return; }
+
+  const d0str = new Date(days[0]+'T12:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  const dNstr = new Date(days[days.length-1]+'T12:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  const dateRange = d0str + ' — ' + dNstr;
+
+  // Sort helper — by sr
+  function sortBySr(arr){ return [...arr].sort((a,b)=>(a.sr||0)-(b.sr||0)); }
+
+  // Fix MR label in print sequence
+  function fixMR(arr){
+    let lastDim = null;
+    arr.forEach(j=>{
+      j._pMrLabel = (j.dim && j.dim.trim() && j.dim.trim() === lastDim)
+        ? 'Same Dim (10 min)'
+        : `New Type (${getPasteParams(j.itemType||'').mr} min)`;
+      lastDim = j.dim ? j.dim.trim() : lastDim;
+    });
+  }
+
+  // Build table rows HTML for one machine section
+  function machRows(jobs, inProgress){
+    return jobs.map((j,i) => {
+      const rowCls = inProgress ? 'row-ip' : (i%2===0 ? 'row-even' : 'row-odd');
+      const kg = calcKg(j);
+      const note = inProgress ? 'In Progress' : (j._bdShifted ? '⚠️ Shifted' : '');
+      return `<tr class="${rowCls}">
+        <td>${j.sr||''}</td>
+        <td class="bold">${j.jcno||''}</td>
+        <td>${j.cust||''}</td>
+        <td class="jobname">${j.name||''}</td>
+        <td class="num">${(+j.qty||0).toLocaleString()}</td>
+        <td>${j.itemType||''}</td>
+        <td class="mono">${j.dim||''}</td>
+        <td>${j.jobStatus||''}</td>
+        <td>${j.nextProcess||''}</td>
+        <td class="mono">${j.cutSize1||'—'}</td>
+        <td class="num">${j.gsm||''}</td>
+        <td class="num">${(j.totalCutSh||j.cut||0).toLocaleString()}</td>
+        <td class="num">${kg>0?kg:''}</td>
+        <td class="mono">${j._pMrLabel||j.mrLabel||''}</td>
+        <td class="time bold">${j.mrTime||''}</td>
+        <td>${j.mrDate||''}</td>
+        <td class="shift">${j.mrShift||''}</td>
+        <td class="time bold">${j.psTime||''}</td>
+        <td>${j.psDate||''}</td>
+        <td class="shift">${j.psShift||''}</td>
+        <td class="time bold">${j.eTime||''}</td>
+        <td>${j.eDate||''}</td>
+        <td class="shift">${j.eShift||''}</td>
+        <td class="note">${note}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  const HDR_ROW = `<thead><tr>
+    <th>Sr</th><th>JCNO</th><th>Customer</th><th>Job Name</th>
+    <th>Qty</th><th>Item Type</th><th>Dimension</th>
+    <th>Job Status</th><th>Next Process</th>
+    <th>CutSize1</th><th>GSM</th><th>Cut Sh</th><th>KG</th>
+    <th>MR Type</th>
+    <th>MR Time</th><th>MR Date</th><th>Shift</th>
+    <th>Start Time</th><th>Start Date</th><th>Shift</th>
+    <th>End Time</th><th>End Date</th><th>Shift</th>
+    <th>Note</th>
+  </tr></thead>`;
+
+  const COLGROUP = `<colgroup>
+    <col style="width:3%"><col style="width:8%"><col style="width:9%"><col style="width:12%">
+    <col style="width:4%"><col style="width:8%"><col style="width:6%">
+    <col style="width:6%"><col style="width:6%">
+    <col style="width:5%"><col style="width:3%"><col style="width:4%"><col style="width:3%">
+    <col style="width:7%">
+    <col style="width:4%"><col style="width:5%"><col style="width:3%">
+    <col style="width:4%"><col style="width:5%"><col style="width:3%">
+    <col style="width:4%"><col style="width:5%"><col style="width:3%">
+    <col style="width:4%">
+  </colgroup>`;
+
+  // Build day sections HTML
+  let dayHtml = '';
+  days.forEach((key, di) => {
+    const dateObj   = new Date(key+'T12:00:00');
+    const dateLabel = dateObj.toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}).toUpperCase();
+    const startJobs = pasteSched.filter(j => j.sKey === key);
+    const ipJobs    = pasteSched.filter(j => j.sKey < key && j.eKey >= key);
+    if(!startJobs.length && !ipJobs.length) return;
+
+    const allDay = [...startJobs, ...ipJobs];
+    const dayQty = allDay.reduce((a,j)=>a+(+j.qty||0),0);
+    const dayKg  = Math.round(allDay.reduce((a,j)=>a+calcKgForDay(j,key).kg,0)*100)/100;
+
+    // Ambition
+    const aip = sortBySr(ipJobs.filter(j=>j.mach==='Ambition'));
+    const ast = sortBySr(startJobs.filter(j=>j.mach==='Ambition'));
+    fixMR([...aip,...ast]);
+    const hasAmb = aip.length || ast.length;
+    const aAll   = [...aip,...ast];
+    const aQty   = aAll.reduce((a,j)=>a+(+j.qty||0),0);
+    const aKg    = Math.round(aAll.reduce((a,j)=>a+calcKgForDay(j,key).kg,0)*100)/100;
+
+    // Expert
+    const eip = sortBySr(ipJobs.filter(j=>j.mach==='Expert'));
+    const est = sortBySr(startJobs.filter(j=>j.mach==='Expert'));
+    fixMR([...eip,...est]);
+    const hasExp = eip.length || est.length;
+    const eAll   = [...eip,...est];
+    const eQty   = eAll.reduce((a,j)=>a+(+j.qty||0),0);
+    const eKg    = Math.round(eAll.reduce((a,j)=>a+calcKgForDay(j,key).kg,0)*100)/100;
+
+    dayHtml += `
+    <div class="day-section${di>0?' page-break':''}">
+      <div class="day-header">
+        <span class="day-title">DAY ${di+1} — ${dateLabel}</span>
+        <span class="day-meta">Jobs: ${allDay.length} &nbsp;|&nbsp; Qty: ${dayQty.toLocaleString()} &nbsp;|&nbsp; KG: ${dayKg}</span>
+      </div>`;
+
+    if(hasAmb){
+      dayHtml += `
+      <div class="mach-header">AMBITION — ${aAll.length} Jobs &nbsp;|&nbsp; Qty: ${aQty.toLocaleString()} &nbsp;|&nbsp; KG: ${aKg}</div>
+      <table>${COLGROUP}${HDR_ROW}<tbody>
+        ${aip.length ? '<tr class="section-lbl"><td colspan="24">▶ IN PROGRESS</td></tr>'+machRows(aip,true) : ''}
+        ${ast.length ? '<tr class="section-lbl2"><td colspan="24">▶ STARTING TODAY</td></tr>'+machRows(ast,false) : ''}
+        <tr class="total-row">
+          <td colspan="4" class="bold">AMBITION TOTAL</td>
+          <td class="num bold">${aQty.toLocaleString()}</td>
+          <td colspan="6"></td>
+          <td class="num bold">${aAll.reduce((a,j)=>a+(j.totalCutSh||j.cut||0),0).toLocaleString()}</td>
+          <td class="num bold">${aKg}</td>
+          <td colspan="11" class="bold">${aAll.length} jobs</td>
+        </tr>
+      </tbody></table>`;
+    }
+
+    if(hasExp){
+      dayHtml += `
+      <div class="mach-header mach-exp">EXPERT — ${eAll.length} Jobs &nbsp;|&nbsp; Qty: ${eQty.toLocaleString()} &nbsp;|&nbsp; KG: ${eKg}</div>
+      <table>${COLGROUP}${HDR_ROW}<tbody>
+        ${eip.length ? '<tr class="section-lbl"><td colspan="24">▶ IN PROGRESS</td></tr>'+machRows(eip,true) : ''}
+        ${est.length ? '<tr class="section-lbl2"><td colspan="24">▶ STARTING TODAY</td></tr>'+machRows(est,false) : ''}
+        <tr class="total-row">
+          <td colspan="4" class="bold">EXPERT TOTAL</td>
+          <td class="num bold">${eQty.toLocaleString()}</td>
+          <td colspan="6"></td>
+          <td class="num bold">${eAll.reduce((a,j)=>a+(j.totalCutSh||j.cut||0),0).toLocaleString()}</td>
+          <td class="num bold">${eKg}</td>
+          <td colspan="11" class="bold">${eAll.length} jobs</td>
+        </tr>
+      </tbody></table>`;
+    }
+
+    dayHtml += `</div>`; // day-section
+  });
+
+  // Full print HTML document
+  const printHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AIA Pasting Plan — 7 Day Print — ${dateRange}</title>
+<style>
+  @page { size: A3 landscape; margin: 8mm 6mm 8mm 6mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 7.5pt; color: #000; background: #fff; }
+
+  .cover-header { border: 2px solid #000; padding: 6px 10px; margin-bottom: 6px; display:flex; justify-content:space-between; align-items:center; }
+  .cover-title { font-size: 13pt; font-weight: bold; letter-spacing: 1px; }
+  .cover-meta { font-size: 8pt; text-align: right; line-height: 1.6; }
+  .cover-range { font-size: 9pt; font-weight: bold; }
+
+  .day-section { margin-bottom: 10px; }
+  .page-break { page-break-before: always; }
+  .day-header { background: #000; color: #fff; padding: 4px 8px; display:flex; justify-content:space-between; align-items:center; margin-bottom: 3px; }
+  .day-title { font-size: 9pt; font-weight: bold; letter-spacing: 0.5px; }
+  .day-meta { font-size: 7.5pt; }
+
+  .mach-header { font-size: 8pt; font-weight: bold; padding: 3px 8px; margin-bottom: 2px; border-left: 4px solid #333; background: #eee; letter-spacing: 0.5px; }
+  .mach-exp { border-left-color: #666; }
+
+  table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+  th { background: #222; color: #fff; font-size: 6.5pt; font-weight: bold; padding: 3px 2px; text-align: center; border: 0.5px solid #555; white-space: nowrap; }
+  td { font-size: 6.5pt; padding: 2px 2px; border: 0.5px solid #ccc; vertical-align: middle; }
+
+  .row-even { background: #fff; }
+  .row-odd  { background: #f5f5f5; }
+  .row-ip   { background: #e8e8e8; font-style: italic; }
+
+  .section-lbl  td { background: #bbb; font-size: 6pt; font-weight: bold; padding: 2px 4px; letter-spacing: 0.5px; }
+  .section-lbl2 td { background: #d5d5d5; font-size: 6pt; font-weight: bold; padding: 2px 4px; letter-spacing: 0.5px; }
+
+  .total-row td { background: #333; color: #fff; font-size: 7pt; font-weight: bold; padding: 3px 2px; border: 0.5px solid #555; }
+
+  .bold    { font-weight: bold; }
+  .mono    { font-family: 'Courier New', monospace; font-size: 6pt; }
+  .num     { text-align: right; font-family: 'Courier New', monospace; }
+  .time    { text-align: center; font-family: 'Courier New', monospace; font-weight: bold; }
+  .shift   { text-align: center; font-size: 6pt; }
+  .jobname { max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .note    { font-size: 6pt; text-align: center; }
+
+  .print-footer { margin-top: 6px; border-top: 1px solid #000; padding-top: 4px; font-size: 6.5pt; display:flex; justify-content:space-between; }
+
+  @media print {
+    .no-print { display: none; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+
+  .print-btn-bar { background: #1e293b; padding: 10px 16px; display:flex; gap:10px; align-items:center; position:sticky; top:0; z-index:99; }
+  .print-btn  { background: #7C3AED; color: #fff; border: none; padding: 8px 20px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
+  .close-btn  { background: transparent; color: #94a3b8; border: 1px solid #475569; padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+  .print-info { color: #94a3b8; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<div class="print-btn-bar no-print">
+  <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+  <button class="close-btn" onclick="window.close()">✕ Close</button>
+  <span class="print-info">Landscape | A3 | All columns fit on one page — Press Ctrl+P to print</span>
+</div>
+
+<div class="cover-header">
+  <div>
+    <div class="cover-title">AIA INDUSTRIES — PASTING SCHEDULE</div>
+    <div class="cover-range">${dateRange}</div>
+  </div>
+  <div class="cover-meta">
+    <div>Generated: ${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div>
+    <div>7 Working Days Plan &nbsp;|&nbsp; Ambition + Expert</div>
+    <div>Shift 1: 07:00–19:00 &nbsp;|&nbsp; Shift 2: 19:30–07:00</div>
+  </div>
+</div>
+
+${dayHtml}
+
+<div class="print-footer no-print">
+  <span>AIA Industries — Pasting Schedule — ${dateRange}</span>
+  <span>Generated: ${new Date().toLocaleDateString('en-IN')}</span>
+</div>
+
+</body>
+</html>`;
+
+  // Download as HTML file
+  const blob = new Blob([printHtml], {type: 'text/html;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'AIA_Pasting_7Day_Print_' + days[0].replace(/-/g,'_') + '.html';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 5000);
+  toast('🖨️ 7-Day Print file downloaded! Open it and press Ctrl+P to print.');
 }
 </script>
 </body>
